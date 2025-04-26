@@ -61,43 +61,84 @@
     });
 
   // Función para cargar los datos desde Google Sheets (con nombre de hoja)
+
+  let currentSheetName = ""; // Variable para saber la hoja actual
+  let dataTableInstance = null;
+
   function loadTableData(sheetName) {
+    currentSheetName = sheetName;
+
+    // Mostrar el header
+    const header = document.getElementById("table-header");
+    header.style.display = "flex";
+
+    // Actualizar el título
+    document.getElementById("currentSectionTitle").textContent = sheetName;
+
+    // Limpiar los botones si ya existen
+    const actionsDiv = document.getElementById("action-buttons");
+    actionsDiv.innerHTML = "";
+
+    // Crear botón Refresh
+    const refreshBtn = document.createElement("button");
+    refreshBtn.className = "btn btn-outline-primary btn-sm me-2";
+    refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
+    refreshBtn.onclick = () => {
+      loadTableData(currentSheetName);
+    };
+
+    // Crear botón Agregar
+    const addNewBtn = document.createElement("button");
+    addNewBtn.className = "btn btn-outline-success btn-sm";
+    addNewBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar';
+    addNewBtn.onclick = () => {
+      alert("Agregar nuevo contacto en: " + currentSheetName);
+      // Aquí podrías abrir un modal o algo más elegante después
+    };
+
+    // Agregar botones al div
+    actionsDiv.appendChild(refreshBtn);
+    actionsDiv.appendChild(addNewBtn);
+
+    // Finalmente cargar los datos de la tabla
     google.script.run
       .withSuccessHandler(function (object) {
-        // Cargar los nuevos datos en la tabla
         updateTable(object.headers, object.datos);
       })
-      .getData(sheetName); // Enviar el nombre de la hoja al servidor
+      .getData(sheetName);
   }
 
-  // Función para actualizar la tabla DataTable
-  function updateTable(headers, datos) {
-    // Verificamos si ya existe la tabla y la destruimos antes de crearla nuevamente
-    if ($.fn.dataTable.isDataTable("#tablaPrueba")) {
-      $("#tablaPrueba").DataTable().clear().destroy(); // Destruir la tabla anterior
+  function updateTable(headers, data) {
+    // Destruir la tabla anterior si existe
+    if (dataTableInstance !== null) {
+      dataTableInstance.destroy();
+      document.getElementById("tablaPrueba").innerHTML =
+        "<thead></thead><tbody></tbody>"; // Limpiar tabla
     }
 
-    // Configuramos las nuevas columnas basadas en los headers
+    // Formatear las columnas
     const formattedCols = headers.map((header) => {
       return { title: header };
     });
 
-    // Creamos la nueva DataTable con los nuevos datos
-    new DataTable("#tablaPrueba", {
+    // Crear nueva tabla
+    dataTableInstance = new DataTable("#tablaPrueba", {
       responsive: true,
       layout: {
         topStart: {
-            buttons: [{
-              extend: 'colvis',
-              text: "Columnas"
-            }]
-        }
-    },
+          buttons: [
+            {
+              extend: "colvis",
+              text: "Columnas",
+            },
+          ],
+        },
+      },
       language: {
         url: "//cdn.datatables.net/plug-ins/2.2.2/i18n/es-CL.json",
       },
       columns: formattedCols,
-      data: datos,
+      data: data,
     });
   }
 </script>
