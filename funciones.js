@@ -76,3 +76,37 @@ function generarIdFlota() {
     // Puedes agregar aquí lógica adicional si necesitas registrar la fecha de creación
     // o realizar otras acciones al agregar un chofer.
   }
+
+
+  function verificarPatenteFlota(patente) {
+    const ss = SpreadsheetApp.openById("1RqztNinU7VGagy8P2wrTLqtXsXLr1W-Dlo_72c5OxiY");
+    const sheet = ss.getSheetByName("Flota");
+    const data = sheet.getDataRange().getDisplayValues();
+    const patenteColumnIndex = 2; // Suponiendo que la columna de la patente es la tercera (índice 2)
+  
+    // Empezar desde la segunda fila para omitir los encabezados
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][patenteColumnIndex] && data[i][patenteColumnIndex].toUpperCase() === patente.toUpperCase()) {
+        return true; // La patente ya existe
+      }
+    }
+    return false; // La patente no existe
+  }
+
+
+//Borrar registro Tabla Flota
+  function borrarRegistroFlota(idFlota) {
+    const ss = SpreadsheetApp.openById("1RqztNinU7VGagy8P2wrTLqtXsXLr1W-Dlo_72c5OxiY");
+    const sheet = ss.getSheetByName("Flota");
+    const data = sheet.getDataRange().getValues();
+    const idColumnIndex = 0; // Suponiendo que el ID de Flota está en la primera columna (índice 0)
+  
+    // Empezar desde la segunda fila para omitir los encabezados
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idColumnIndex] == idFlota) {
+        sheet.deleteRow(i + 1); // Los índices de las filas en Sheets son base 1
+        return 'success';
+      }
+    }
+    return 'error'; // No se encontró el ID
+  }
