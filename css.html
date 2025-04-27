@@ -96,7 +96,7 @@ body {
     flex: 1 1 auto;
 }
 
-a.sidebar-link {
+button.sidebar-link {
     padding: .625rem 1.625rem;
     color: #fff;
     display: block;
@@ -143,10 +143,38 @@ a.sidebar-link:hover {
 #currentSectionTitle {
     font-size: 40px;
     color: #3b7ddd;
-    font-weight: 700;
-    
-
+    font-weight: 700;   
 }
+
+
+/* Estilos opcionales para el modal */
+.modal-dialog {
+  max-width: 600px;
+}
+
+.modal-header {
+  background-color: #007bff;
+  color: white;
+}
+
+.modal-footer .btn-secondary {
+  background-color: #6c757d;
+}
+
+
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  /* Más de tus estilos existentes aquí */
 
 /* #sidebar .expand .sidebar-link [data-bs-toggle = "collapse"]::after{
     border: solid;
@@ -165,6 +193,62 @@ a.sidebar-link:hover {
     transform: rotate(45deg);
     transition: all .2s ease-out;
 } */
+
+
+   /* Estilos para los botones/enlaces del sidebar */
+   .sidebar-nav button.sidebar-link,
+  .sidebar-footer button.sidebar-link { /* Aplicamos también al botón del footer */
+    display: block;
+    width: 100%;
+    padding: 0.625rem 1.625rem;
+    color: #fff;
+    font-size: 0.9rem;
+    text-align: left;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    border-left: 3px solid transparent;
+    transition: background-color 0.075s ease-in-out, border-left 0.2s ease-in-out;
+  }
+
+  .sidebar-nav button.sidebar-link i,
+  .sidebar-footer button.sidebar-link i {
+    font-size: 1.1rem;
+    margin-right: 0.75rem;
+    vertical-align: middle;
+  }
+
+  .sidebar-nav button.sidebar-link span,
+  .sidebar-footer button.sidebar-link span {
+    vertical-align: middle;
+  }
+
+  /* Ocultar el texto cuando el sidebar no está expandido */
+  #sidebar:not(.expand) button.sidebar-link span {
+    display: none;
+  }
+
+  .sidebar-nav button.sidebar-link:hover,
+  .sidebar-footer button.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+    border-left: 3px solid #3b7ddd;
+  }
+
+  .sidebar-nav button.sidebar-link:focus,
+  .sidebar-footer button.sidebar-link:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Estilo para el botón activo (opcional) */
+  .sidebar-nav button.sidebar-link.active,
+  .sidebar-footer button.sidebar-link.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left: 3px solid #3b7ddd;
+    font-weight: 600;
+  }
+
 
 
   </style>

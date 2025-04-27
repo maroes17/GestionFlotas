@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Archivos CSS y Bostrapp -->
     <?!= obtenerDatosHtml('css'); ?>
   </head>
 
@@ -19,54 +18,31 @@
         </div>
         <ul class="sidebar-nav">
           <li class="sidebar-item">
-            <a href="#" id="flotaLink" class="sidebar-link">
+            <button id="flotaBtn" class="sidebar-link">
               <i class="bi bi-truck"></i>
-              <span>FLota</span>
-            </a>
+              <span>Flota</span>
+            </button>
           </li>
           <li class="sidebar-item">
-            <a href="#" class="sidebar-link">
+            <button class="sidebar-link">
               <i class="bi bi-globe-americas"></i>
               <span>Viajes</span>
-            </a>
+            </button>
           </li>
           <li class="sidebar-item">
-            <a href="#" id="choferesLink" class="sidebar-link">
+            <button id="choferesBtn" class="sidebar-link">
               <i class="bi bi-person-vcard"></i>
               <span>Choferes</span>
-            </a>
+            </button>
           </li>
-          <!-- <li class="sidebar-item">
-            <a
-              href="#"
-              class="sidebar-link has-dropdown collapsed"
-              data-bs-toggle="collapse"
-              data-bs-target="#auth"
-              aria-expanded="false"
-              aria-controls="auth"
-            >
-              <i class="bi bi-shield-lock"></i>
-              <span>Seguridad</span>
-            </a>
-            <ul
-              id="auth"
-              class="sidebar-dropdown list-unstyled collapse"
-              data-bs-parent="#sidebar"
-            >
-              <li class="sidebar-item">
-                <a href="#" class="sidebar-link">Login</a>
-              </li>
-              <li class="sidebar-item">
-                <a href="#" class="sidebar-link">Registrar</a>
-              </li>
-            </ul>
-          </li> -->
         </ul>
         <div class="sidebar-footer">
-          <a href="#" class="sidebar-link">
-            <i class="bi bi-box-arrow-right"></i>
-            <span>By Matias Rojas</span>
-          </a>
+          <div class="sidebar-footer">
+            <button class="sidebar-link">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>By Matias Rojas</span>
+            </button>
+          </div>
         </div>
       </aside>
       <div class="main p-3">
@@ -79,9 +55,7 @@
             <div>
               <span id="currentSectionTitle" class="h4"></span>
             </div>
-            <div id="action-buttons">
-              <!-- Aquí los botones se agregarán dinámicamente -->
-            </div>
+            <div id="action-buttons"></div>
           </div>
           <table
             id="tablaPrueba"
@@ -96,40 +70,227 @@
       </div>
     </div>
 
-
-    <!-- Modal Agregar -->
-<div class="modal fade" id="modalAgregar" tabindex="-1" aria-labelledby="modalAgregarLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalAgregarLabel">Agregar Nuevo Registro</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formAgregar">
-            <div class="mb-3">
-              <label for="campo1" class="form-label">Campo 1</label>
-              <input type="text" class="form-control" id="campo1" name="campo1" required>
-            </div>
-            <div class="mb-3">
-              <label for="campo2" class="form-label">Campo 2</label>
-              <input type="text" class="form-control" id="campo2" name="campo2" required>
-            </div>
-            <!-- Puedes agregar más campos aquí si quieres -->
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="guardarRegistro">Guardar</button>
+    <!-- Modal Boton Agregar Flota -->
+    <div
+      class="modal fade"
+      id="modalAgregarFlota"
+      tabindex="-1"
+      aria-labelledby="modalAgregarFlotaLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarFlotaLabel">
+              Agregar Nuevo Registro de Flota
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formAgregarFlota">
+              <input
+                type="hidden"
+                id="inputCreacionRegistroFlota"
+                value="Creación de Registro"
+              />
+              <div class="mb-3">
+                <label for="inputTipoFlota" class="form-label">Tipo</label>
+                <select class="form-select" id="inputTipoFlota" required>
+                  <option value="Camión">Camión</option>
+                  <option value="Vehículo">Vehículo</option>
+                </select>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputPatenteFlota" class="form-label"
+                    >Patente</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="inputPatenteFlota"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputNroChasisFlota" class="form-label"
+                    >Nro Chasis</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="inputNroChasisFlota"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputMarcaFlota" class="form-label">Marca</label>
+                  <select
+                    class="form-select"
+                    id="inputMarcaFlota"
+                    required
+                    onchange="actualizarModeloFlota()"
+                  >
+                    <option value="Freightliner">Freightliner</option>
+                    <option value="International">International</option>
+                    <option value="Kenworth">Kenworth</option>
+                    <option value="Mack Trucks">Mack Trucks</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="inputModeloFlota" class="form-label"
+                    >Modelo</label
+                  >
+                  <select
+                    class="form-select"
+                    id="inputModeloFlota"
+                    required
+                  ></select>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputAñoFlota" class="form-label">Año</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="inputAñoFlota"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputCapacidadFlota" class="form-label"
+                    >Capacidad</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="inputCapacidadFlota"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="inputFechaIngresoFlota" class="form-label"
+                  >Fecha de Ingreso</label
+                >
+                <input
+                  type="date"
+                  class="form-control"
+                  id="inputFechaIngresoFlota"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="inputObservacionesFlota" class="form-label"
+                  >Observaciones</label
+                >
+                <textarea
+                  class="form-control"
+                  id="inputObservacionesFlota"
+                  rows="3"
+                ></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" id="btnGuardarFlota">
+              Guardar Flota
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
 
-    <!-- CSS y boostrap -->
-    <?!= obtenerDatosHtml('css'); ?>
-    <!-- JS -->
+    <div
+      class="modal fade"
+      id="modalAgregarChoferes"
+      tabindex="-1"
+      aria-labelledby="modalAgregarChoferesLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarChoferesLabel">
+              Agregar Nuevo Chofer
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formAgregarChoferes">
+              <div class="mb-3">
+                <label for="inputNombreChofer" class="form-label">Nombre</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="inputNombreChofer"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="inputApellidoChofer" class="form-label"
+                  >Apellido</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="inputApellidoChofer"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="inputLicenciaChofer" class="form-label"
+                  >Nro. Licencia</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="inputLicenciaChofer"
+                  required
+                />
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="btnGuardarChoferes"
+            >
+              Guardar Chofer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <?!= obtenerDatosHtml('js'); ?>
   </body>
 </html>
