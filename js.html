@@ -4,46 +4,57 @@
   crossorigin="anonymous"
   type="text/javascript"
 ></script>
+
 <script
   src="https://code.jquery.com/jquery-3.7.1.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/2.2.2/js/dataTables.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/responsive/3.0.4/js/dataTables.responsive.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/responsive/3.0.4/js/responsive.bootstrap5.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/buttons/3.2.2/js/dataTables.buttons.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/buttons/3.2.2/js/buttons.dataTables.js"
   type="text/javascript"
 ></script>
+
 <script
   src="https://cdn.datatables.net/buttons/3.2.2/js/buttons.colVis.min.js"
   type="text/javascript"
 ></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
   //Activar / Desactivar Botón Hamburguesa Menú
+
   const hamburger = document.querySelector("#toggle-btn");
 
   hamburger.addEventListener("click", function () {
@@ -51,6 +62,7 @@
   });
 
   // Escuchar el click en los botones del menú
+
   document.querySelector("#flotaBtn").addEventListener("click", function () {
     loadTableData("Flota");
   });
@@ -60,80 +72,122 @@
   });
 
   // Función para cargar los datos desde Google Sheets
+
   let currentSheetName = "";
+
   let dataTableInstance = null;
 
   function loadTableData(sheetName) {
     currentSheetName = sheetName;
 
     // Mostrar el header (ocultándolo al inicio si es necesario)
+
     const header = document.getElementById("table-header");
+
     header.style.display = "flex";
 
     // Actualizar el título inmediatamente
-    document.getElementById("currentSectionTitle").textContent = `Cargando ${sheetName}...`;
+
+    document.getElementById(
+      "currentSectionTitle"
+    ).textContent = `Cargando ${sheetName}...`;
 
     // Limpiar los botones inmediatamente
+
     const actionsDiv = document.getElementById("action-buttons");
+
     actionsDiv.innerHTML = "";
 
     // Limpiar la tabla inmediatamente
+
     const tablaPrueba = document.getElementById("tablaPrueba");
-    tablaPrueba.innerHTML = '<tr><td class="text-center py-5" colspan="100%">Cargando datos... <div class="spinner-border spinner-border-sm ms-2" role="status"><span class="visually-hidden">Cargando...</span></div></td></tr>';
+
+    tablaPrueba.innerHTML =
+      '<tr><td class="text-center py-5" colspan="100%">Cargando datos... <div class="spinner-border spinner-border-sm ms-2" role="status"><span class="visually-hidden">Cargando...</span></div></td></tr>';
 
     google.script.run
+
       .withSuccessHandler(function (object) {
         document.getElementById("currentSectionTitle").textContent = sheetName;
+
         actionsDiv.innerHTML = "";
+
         createActionButtons();
+
         updateTable(object.headers, object.datos);
       })
-      .withFailureHandler(function(error) {
+
+      .withFailureHandler(function (error) {
         console.error("Error al cargar datos:", error);
-        document.getElementById("currentSectionTitle").textContent = `Error al cargar ${sheetName}`;
-        tablaPrueba.innerHTML = '<tr<td class="text-center py-5" colspan="100%">Error al cargar los datos. Por favor, intenta nuevamente.</td></tr>';
+
+        document.getElementById(
+          "currentSectionTitle"
+        ).textContent = `Error al cargar ${sheetName}`;
+
+        tablaPrueba.innerHTML =
+          '<tr<td class="text-center py-5" colspan="100%">Error al cargar los datos. Por favor, intenta nuevamente.</td></tr>';
+
         actionsDiv.innerHTML = "";
+
         createActionButtons();
       })
+
       .getData(sheetName);
   }
 
   function createActionButtons() {
     const actionsDiv = document.getElementById("action-buttons");
+
     const refreshBtn = document.createElement("button");
+
     refreshBtn.className = "btn btn-outline-primary btn-sm me-2";
+
     refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Actualizar';
+
     refreshBtn.onclick = () => {
       loadTableData(currentSheetName);
     };
 
     const addNewBtn = document.createElement("button");
+
     addNewBtn.className = "btn btn-outline-success btn-sm";
+
     addNewBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar';
+
     addNewBtn.onclick = () => {
       if (currentSheetName === "Flota") {
-        $('#modalAgregarFlota').modal('show');
-        document.getElementById("modalAgregarFlotaLabel").textContent = "Agregar nuevo registro en Flota";
+        $("#modalAgregarFlota").modal("show");
+
+        document.getElementById("modalAgregarFlotaLabel").textContent =
+          "Agregar nuevo registro en Flota";
+
         document.getElementById("formAgregarFlota").reset();
       } else if (currentSheetName === "Choferes") {
-        $('#modalAgregarChoferes').modal('show');
-        document.getElementById("modalAgregarChoferesLabel").textContent = "Agregar nuevo Chofer";
+        $("#modalAgregarChoferes").modal("show");
+
+        document.getElementById("modalAgregarChoferesLabel").textContent =
+          "Agregar nuevo Chofer";
+
         document.getElementById("formAgregarChoferes").reset();
       }
     };
 
     actionsDiv.appendChild(refreshBtn);
+
     actionsDiv.appendChild(addNewBtn);
   }
 
   function updateTable(headers, data) {
     // Destruir la tabla anterior si existe
+
     if (dataTableInstance !== null) {
       dataTableInstance.destroy();
+
       document.getElementById("tablaPrueba").innerHTML = "";
     }
 
     // Formatear las columnas
+
     const formattedCols = headers.map((header) => {
       return { title: header };
     });
@@ -142,254 +196,529 @@
 
     if (currentSheetName === "Flota") {
       const indexCreacionRegistro = headers.indexOf("Creación de Registro");
-      if (indexCreacionRegistro !== -1) {
-        columnDefs.push({ targets: indexCreacionRegistro, visible: false });
-      }
+        const indexFechaIngreso = headers.indexOf("Fecha de Ingreso"); // Obtener el índice de "Fecha de Ingreso"
+
+        if (indexCreacionRegistro !== -1) {
+            columnDefs.push({ targets: indexCreacionRegistro, visible: false });
+        }
+
+        if (indexFechaIngreso !== -1) {
+            columnDefs.push({ targets: indexFechaIngreso, visible: false }); // Ocultar "Fecha de Ingreso"
+        }
 
       // Definir la columna de acciones
+
       formattedCols.push({ title: "Acciones", orderable: false });
+
       columnDefs.push({
         targets: -1, // La última columna
+
         render: function (data, type, row, meta) {
           const idFlota = row[0];
+
           return `
-            <button class="btn btn-sm btn-warning me-1 btn-editar-flota" data-id="<span class="math-inline">\{idFlota\}" title\="Editar"\>
-<i class\="bi bi\-pencil\-square"\></i\>
-</button\>
-<button class\="btn btn\-sm btn\-danger btn\-borrar\-flota" data\-id\="</span>{idFlota}" title="Borrar">
-              <i class="bi bi-trash"></i>
-            </button>
-          `;
+
+<button class="btn btn-sm btn-warning me-1 btn-editar-flota" data-id="${idFlota}" title="Editar">
+
+<i class="bi bi-pencil-square"></i>
+
+</button>
+
+<button class="btn btn-sm btn-danger btn-borrar-flota" data-id="${idFlota}" title="Borrar">
+
+<i class="bi bi-trash"></i>
+
+</button>
+
+`;
         },
       });
 
       // Asegurarnos de que cada fila de datos tenga una "columna" adicional para los botones de acción
-      const dataWithActions = data.map(row => {
-        return [...row, ''];
+
+      const dataWithActions = data.map((row) => {
+        return [...row, ""];
       });
 
       // Crear nueva tabla para Flota
+
       dataTableInstance = new DataTable("#tablaPrueba", {
         responsive: true,
+
         layout: {
           topStart: {
             buttons: [
               {
                 extend: "colvis",
+
                 text: "Columnas",
               },
             ],
           },
         },
+
         language: {
           url: "//cdn.datatables.net/plug-ins/2.2.2/i18n/es-CL.json",
         },
+
         columns: formattedCols,
+
         data: dataWithActions,
+
         columnDefs: columnDefs,
       });
 
       // Event listeners para los botones de Flota
-      $(document).off('click', '.btn-editar-flota').on('click', '.btn-editar-flota', function () {
-        const idFlota = $(this).data('id');
-        Swal.fire({
-          icon: 'info',
-          title: 'Editar Flota',
-          text: `Función de edición para el ID: ${idFlota} en desarrollo.`,
-        });
-      });
 
-      $(document).off('click', '.btn-borrar-flota').on('click', '.btn-borrar-flota', function () {
-        const idFlota = $(this).data('id');
-        Swal.fire({
-          title: '¿Estás seguro de borrar este registro?',
-          text: `ID: ${idFlota}`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#dc3545',
-          cancelButtonColor: '#6c757d',
-          confirmButtonText: 'Sí, borrar',
-          cancelButtonText: 'Cancelar'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            google.script.run.withSuccessHandler(function (resultado) {
-              if (resultado === 'success') {
-                Swal.fire(
-                  'Borrado!',
-                  `El registro con ID ${idFlota} ha sido borrado.`,
-                  'success'
-                );
-                loadTableData(currentSheetName); // Recargar la tabla
+      $(document)
+        .off("click", ".btn-editar-flota")
+        .on("click", ".btn-editar-flota", function () {
+          const idFlota = $(this).data("id");
+
+          console.log("ID de Flota a editar:", idFlota);
+
+          google.script.run
+            .withSuccessHandler(function (registro) {
+              console.log("Registro recibido:", registro); // <-- AGREGAR ESTA LÍNEA
+
+              if (registro) {
+                llenarModalEditarFlota(registro);
+
+                $("#modalEditarFlota").modal("show");
               } else {
-                Swal.fire(
-                  'Error!',
-                  `Hubo un problema al borrar el registro con ID ${idFlota}.`,
-                  'error'
-                );
-              }
-            }).borrarRegistroFlota(idFlota);
-          }
-        });
-      });
+                Swal.fire({
+                  icon: "error",
 
+                  title: "Error al cargar",
+
+                  text: `No se encontraron datos para el ID: ${idFlota}.`,
+                });
+              }
+            })
+            .obtenerRegistroFlota(idFlota);
+        });
+
+      $(document)
+        .off("click", ".btn-borrar-flota")
+        .on("click", ".btn-borrar-flota", function () {
+          const idFlota = $(this).data("id");
+
+          Swal.fire({
+            title: "¿Estás seguro de borrar este registro?",
+
+            text: `ID: ${idFlota}`,
+
+            icon: "warning",
+
+            showCancelButton: true,
+
+            confirmButtonColor: "#dc3545",
+
+            cancelButtonColor: "#6c757d",
+
+            confirmButtonText: "Sí, borrar",
+
+            cancelButtonText: "Cancelar",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              google.script.run
+                .withSuccessHandler(function (resultado) {
+                  if (resultado === "success") {
+                    Swal.fire(
+                      "Borrado!",
+
+                      `El registro con ID ${idFlota} ha sido borrado.`,
+
+                      "success"
+                    );
+
+                    loadTableData(currentSheetName); // Recargar la tabla
+                  } else {
+                    Swal.fire(
+                      "Error!",
+
+                      `Hubo un problema al borrar el registro con ID ${idFlota}.`,
+
+                      "error"
+                    );
+                  }
+                })
+                .borrarRegistroFlota(idFlota);
+            }
+          });
+        });
     } else {
       // Crear nueva tabla para otras secciones (como Choferes)
+
       dataTableInstance = new DataTable("#tablaPrueba", {
         responsive: true,
+
         layout: {
           topStart: {
             buttons: [
               {
                 extend: "colvis",
+
                 text: "Columnas",
               },
             ],
           },
         },
+
         language: {
           url: "//cdn.datatables.net/plug-ins/2.2.2/i18n/es-CL.json",
         },
+
         columns: formattedCols,
+
         data: data,
+
         columnDefs: columnDefs,
       });
     }
   }
 
   // Funciones para actualizar el modelo en el modal de Flota
+
   function actualizarModeloFlota() {
     const marca = document.getElementById("inputMarcaFlota").value;
+
     const modeloSelect = document.getElementById("inputModeloFlota");
+
     modeloSelect.innerHTML = "";
+
     let modelos = [];
+
     if (marca === "Freightliner") modelos = ["Cascadia", "M2 106", "Columbia"];
-    else if (marca === "International") modelos = ["ProStar", "LT Series", "PayStar"];
+    else if (marca === "International")
+      modelos = ["ProStar", "LT Series", "PayStar"];
     else if (marca === "Kenworth") modelos = ["T680", "W990", "T880"];
-    else if (marca === "Mack Trucks") modelos = ["Anthem", "Granite", "Pinnacle"];
+    else if (marca === "Mack Trucks")
+      modelos = ["Anthem", "Granite", "Pinnacle"];
+
     modelos.forEach(function (modelo) {
       const option = document.createElement("option");
+
       option.value = modelo;
+
       option.textContent = modelo;
+
       modeloSelect.appendChild(option);
     });
   }
 
   // Función para guardar un nuevo registro de Flota
-  document.getElementById("btnGuardarFlota").onclick = function() {
+
+  document.getElementById("btnGuardarFlota").onclick = function () {
     const btnGuardar = this;
+
     const textoOriginal = btnGuardar.textContent;
+
     btnGuardar.disabled = true;
-    btnGuardar.textContent = 'Cargando...';
+
+    btnGuardar.textContent = "Cargando...";
 
     const tipo = document.getElementById("inputTipoFlota").value;
-    const patente = document.getElementById("inputPatenteFlota").value.trim().toUpperCase();
-    const nroChasis = document.getElementById("inputNroChasisFlota").value.trim();
+
+    const patente = document
+      .getElementById("inputPatenteFlota")
+      .value.trim()
+      .toUpperCase();
+
+    const nroChasis = document
+      .getElementById("inputNroChasisFlota")
+      .value.trim();
+
     const marca = document.getElementById("inputMarcaFlota").value;
+
     const modelo = document.getElementById("inputModeloFlota").value;
+
     const año = document.getElementById("inputAñoFlota").value;
-    const fechaIngreso = document.getElementById("inputFechaIngresoFlota").value;
-    const observaciones = document.getElementById("inputObservacionesFlota").value;
+
+    const fechaIngreso = document.getElementById(
+      "inputFechaIngresoFlota"
+    ).value;
+
+    const observaciones = document.getElementById(
+      "inputObservacionesFlota"
+    ).value;
+
     const capacidad = document.getElementById("inputCapacidadFlota").value;
 
     // Validar campos obligatorios
-    if (!tipo || !patente || !nroChasis || !marca || !modelo || !año || !fechaIngreso) {
+
+    if (
+      !tipo ||
+      !patente ||
+      !nroChasis ||
+      !marca ||
+      !modelo ||
+      !año ||
+      !fechaIngreso
+    ) {
       Swal.fire({
-        icon: 'error',
-        title: 'Campos Obligatorios',
-        text: 'Por favor, completa todos los campos obligatorios.',
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Entendido'
+        icon: "error",
+
+        title: "Campos Obligatorios",
+
+        text: "Por favor, completa todos los campos obligatorios.",
+
+        confirmButtonColor: "#dc3545",
+
+        confirmButtonText: "Entendido",
       }).finally(() => {
         btnGuardar.disabled = false;
+
         btnGuardar.textContent = textoOriginal;
       });
+
       return;
     }
 
     // Verificar si la patente ya existe (llamada al backend)
-    google.script.run.withSuccessHandler(function(patenteExiste) {
-      if (patenteExiste) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Patente Duplicada',
-          text: 'La patente ingresada ya existe en la base de datos.',
-          confirmButtonColor: '#ffc107',
-          confirmButtonText: 'Entendido'
-        }).finally(() => {
-          btnGuardar.disabled = false;
-          btnGuardar.textContent = textoOriginal;
-        });
-        return; // Detener el guardado si la patente ya existe
-      } else {
-        // La patente no existe, proceder a guardar
-        google.script.run.withSuccessHandler(function(idFlota) {
-          const registro = [
-            idFlota,
-            tipo,
-            patente,
-            nroChasis,
-            marca,
-            modelo,
-            año,
-            capacidad,
-            "Disponible",
-            fechaIngreso,
-            observaciones,
-            "Creación de Registro"
-          ];
-
-          google.script.run.withSuccessHandler(function() {
-            $('#modalAgregarFlota').modal('hide');
-            Swal.fire({
-              icon: 'success',
-              title: 'Registro guardado',
-              text: '¡El nuevo registro de flota se ha guardado correctamente!',
-              confirmButtonColor: '#3085d6',
-              confirmButtonText: 'OK'
-            }).finally(() => {
-              btnGuardar.disabled = false;
-              btnGuardar.textContent = textoOriginal;
-            });
-            loadTableData(currentSheetName);
-          }).agregarRegistroFlota(registro);
-        }).generarIdFlota()
-        .withFailureHandler(error => {
-          console.error("Error al guardar:", error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error al Guardar',
-            text: 'Hubo un problema al guardar el registro. Por favor, intenta nuevamente.',
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Entendido'
-          }).finally(() => {
-            btnGuardar.disabled = false;
-            btnGuardar.textContent = textoOriginal;
-          });
-        });
-      }
-    }).verificarPatenteFlota(patente); // Llamada a la nueva función en code.
-  };
-
-  // Función para guardar un nuevo Chofer
-  document.getElementById("btnGuardarChoferes").onclick = function () {
-    const nombre = document.getElementById("inputNombreChofer").value;
-    const apellido = document.getElementById("inputApellidoChofer").value;
-    const licencia = document.getElementById("inputLicenciaChofer").value;
-
-    const registroChofer = [nombre, apellido, licencia];
 
     google.script.run
-      .withSuccessHandler(function () {
-        $("#modalAgregarChoferes").modal("hide");
-        Swal.fire({
-          icon: "success",
-          title: "Chofer guardado",
-          text: "¡El nuevo chofer se ha guardado correctamente!",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "OK",
-        });
-        loadTableData(currentSheetName);
+      .withSuccessHandler(function (patenteExiste) {
+        if (patenteExiste) {
+          Swal.fire({
+            icon: "warning",
+
+            title: "Patente Duplicada",
+
+            text: "La patente ingresada ya existe en la base de datos.",
+
+            confirmButtonColor: "#ffc107",
+
+            confirmButtonText: "Entendido",
+          }).finally(() => {
+            btnGuardar.disabled = false;
+
+            btnGuardar.textContent = textoOriginal;
+          });
+
+          return; // Detener el guardado si la patente ya existe
+        } else {
+          // La patente no existe, proceder a guardar
+
+          const gsRunner = google.script.run; // Almacenamos google.script.run en una variable
+
+          gsRunner
+            .withSuccessHandler(function (idFlota) {
+              const registro = [
+                idFlota,
+
+                tipo,
+
+                patente,
+
+                nroChasis,
+
+                marca,
+
+                modelo,
+
+                año,
+
+                capacidad,
+
+                "Disponible",
+
+                fechaIngreso,
+
+                observaciones,
+
+                "Creación de Registro",
+              ];
+
+              gsRunner
+                .withSuccessHandler(function () {
+                  $("#modalAgregarFlota").modal("hide");
+
+                  Swal.fire({
+                    icon: "success",
+
+                    title: "Registro guardado",
+
+                    text: "¡El nuevo registro de flota se ha guardado correctamente!",
+
+                    confirmButtonColor: "#3085d6",
+
+                    confirmButtonText: "OK",
+                  }).finally(() => {
+                    btnGuardar.disabled = false;
+
+                    btnGuardar.textContent = textoOriginal;
+                  });
+
+                  loadTableData(currentSheetName);
+                })
+                .agregarRegistroFlota(registro);
+            })
+            .withFailureHandler((error) => {
+              // <-- Asegurándonos que esté aquí
+
+              console.error("Error al generar ID:", error);
+
+              Swal.fire({
+                icon: "error",
+
+                title: "Error al generar ID",
+
+                text: "Hubo un problema al generar el ID del registro. Por favor, intenta nuevamente.",
+
+                confirmButtonColor: "#dc3545",
+
+                confirmButtonText: "Entendido",
+              }).finally(() => {
+                btnGuardar.disabled = false;
+
+                btnGuardar.textContent = textoOriginal;
+              });
+            })
+            .generarIdFlota(); // Llamamos a la función usando la variable
+        }
       })
-      .agregarRegistroChofer(registroChofer); // Necesitas crear esta función en code.gs
+      .verificarPatenteFlota(patente)
+
+      .withFailureHandler((error) => {
+        console.error("Error al verificar patente:", error);
+
+        Swal.fire({
+          icon: "error",
+
+          title: "Error al verificar patente",
+
+          text: "Hubo un problema al verificar la patente. Por favor, intenta nuevamente.",
+
+          confirmButtonColor: "#dc3545",
+
+          confirmButtonText: "Entendido",
+        }).finally(() => {
+          btnGuardar.disabled = false;
+
+          btnGuardar.textContent = textoOriginal;
+        });
+      });
   };
+
+  // ... (resto de tu código js.html) ...
+
+  function llenarModalEditarFlota(registro) {
+  try {
+    document.getElementById("editarIdFlota").value = registro[0];
+    document.getElementById("editarTipoFlota").value = registro[1];
+    document.getElementById("editarPatenteFlota").value = registro[2];
+    document.getElementById("editarNroChasisFlota").value = registro[3];
+    document.getElementById("editarMarcaFlota").value = registro[4];
+
+    // Actualizar modelos
+    const marcaSeleccionada = registro[4];
+    const modeloSelect = document.getElementById("editarModeloFlota");
+    modeloSelect.innerHTML = "";
+    
+    let modelos = [];
+    if (marcaSeleccionada === "Freightliner") modelos = ["Argosy", "CASC 125"];
+    else if (marcaSeleccionada === "International") modelos = ["7600", "9800", "9200","Prostar"];
+    else if (marcaSeleccionada === "Kenworth") modelos = ["T800", "W990", "T880"];
+    else if (marcaSeleccionada === "Mack Trucks") modelos = ["CXU613E", "Pinnacle"];
+
+    modelos.forEach(modelo => {
+      const option = document.createElement("option");
+      option.value = option.textContent = modelo;
+      modeloSelect.appendChild(option);
+    });
+    
+    document.getElementById("editarModeloFlota").value = registro[5];
+    document.getElementById("editarAñoFlota").value = registro[6];
+    document.getElementById("editarCapacidadFlota").value = registro[7];
+    
+    // Manejo especial para fecha
+    let fechaIngreso = registro[9];
+    if (fechaIngreso instanceof Date) {
+      fechaIngreso = fechaIngreso.toISOString().split('T')[0];
+    } else if (typeof fechaIngreso === 'string') {
+      fechaIngreso = fechaIngreso.split('T')[0];
+    }
+    document.getElementById("editarFechaIngresoFlota").value = fechaIngreso;
+    
+    document.getElementById("editarObservacionesFlota").value = registro[10];
+  } catch (error) {
+    console.error("Error al llenar modal de edición:", error);
+    throw error;
+  }
+}
+
+  // Event listener para el botón "Guardar Cambios" del modal de Editar Flota
+
+  document.getElementById("btnGuardarEditarFlota").onclick = function () {
+    const btnGuardarEditar = this;
+    const textoOriginal = btnGuardarEditar.textContent;
+    btnGuardarEditar.disabled = true;
+    btnGuardarEditar.textContent = "Guardando cambios...";
+    const idFlota = document.getElementById("editarIdFlota").value;
+    const tipo = document.getElementById("editarTipoFlota").value;
+    const patente = document
+      .getElementById("editarPatenteFlota")
+      .value.trim()
+      .toUpperCase();
+
+    const nroChasis = document
+      .getElementById("editarNroChasisFlota")
+      .value.trim();
+
+    const marca = document.getElementById("editarMarcaFlota").value;
+    const modelo = document.getElementById("editarModeloFlota").value;
+    const año = document.getElementById("editarAñoFlota").value;
+    const capacidad = document.getElementById("editarCapacidadFlota").value;
+    const fechaIngreso = document.getElementById(
+      "editarFechaIngresoFlota"
+    ).value;
+
+    const observaciones = document.getElementById(
+      "editarObservacionesFlota"
+    ).value;
+
+    const registroModificado = [
+      idFlota,
+      tipo,
+      patente,
+      nroChasis,
+      marca,
+      modelo,
+      año,
+      capacidad,
+      "Disponible", // Suponiendo que el estado no se edita aquí
+      fechaIngreso,
+      observaciones,
+      // La columna de "Creación de Registro" probablemente no se edita
+    ];
+
+    google.script.run
+      .withSuccessHandler(function (resultado) {
+        btnGuardarEditar.disabled = false;
+
+        btnGuardarEditar.textContent = textoOriginal;
+
+        $("#modalEditarFlota").modal("hide");
+
+        if (resultado === "success") {
+          Swal.fire(
+            "Actualizado!",
+            `El registro con ID ${idFlota} ha sido actualizado.`,
+            "success"
+          );
+
+          loadTableData(currentSheetName); // Recargar la tabla
+        } else {
+          Swal.fire(
+            "Error!",
+            `Hubo un problema al actualizar el registro con ID ${idFlota}.`,
+            "error"
+          );
+        }
+      })
+      .actualizarRegistroFlota(registroModificado);
+  };
+
+  // ... (resto de tu código js.html) ...
 </script>

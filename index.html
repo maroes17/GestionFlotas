@@ -1,7 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <?!= obtenerDatosHtml('css'); ?>
@@ -14,37 +16,47 @@
           <button id="toggle-btn" type="button">
             <i class="bi bi-grid-fill"></i>
           </button>
+
           <a href="#" class="sidebar-logo">Transportes Romanesco</a>
         </div>
+
         <ul class="sidebar-nav">
           <li class="sidebar-item">
             <button id="flotaBtn" class="sidebar-link">
               <i class="bi bi-truck"></i>
+
               <span>Flota</span>
             </button>
           </li>
+
           <li class="sidebar-item">
             <button class="sidebar-link">
               <i class="bi bi-globe-americas"></i>
+
               <span>Viajes</span>
             </button>
           </li>
+
           <li class="sidebar-item">
             <button id="choferesBtn" class="sidebar-link">
               <i class="bi bi-person-vcard"></i>
+
               <span>Choferes</span>
             </button>
           </li>
         </ul>
+
         <div class="sidebar-footer">
           <div class="sidebar-footer">
             <button class="sidebar-link">
               <i class="bi bi-box-arrow-right"></i>
+
               <span>By Matias Rojas</span>
             </button>
           </div>
         </div>
       </aside>
+
       <div class="main p-3">
         <div class="container">
           <div
@@ -55,15 +67,19 @@
             <div>
               <span id="currentSectionTitle" class="h4"></span>
             </div>
+
             <div id="action-buttons"></div>
           </div>
+
           <table
             id="tablaPrueba"
             class="table table-striped"
             style="width: 100%"
           >
             <thead></thead>
+
             <tbody></tbody>
+
             <tfoot></tfoot>
           </table>
         </div>
@@ -71,6 +87,7 @@
     </div>
 
     <!-- Modal Boton Agregar Flota -->
+
     <div
       class="modal fade"
       id="modalAgregarFlota"
@@ -84,6 +101,7 @@
             <h5 class="modal-title" id="modalAgregarFlotaLabel">
               Agregar Nuevo Registro de Flota
             </h5>
+
             <button
               type="button"
               class="btn-close"
@@ -91,6 +109,7 @@
               aria-label="Cerrar"
             ></button>
           </div>
+
           <div class="modal-body">
             <form id="formAgregarFlota">
               <input
@@ -98,18 +117,23 @@
                 id="inputCreacionRegistroFlota"
                 value="Creación de Registro"
               />
+
               <div class="mb-3">
                 <label for="inputTipoFlota" class="form-label">Tipo</label>
+
                 <select class="form-select" id="inputTipoFlota" required>
                   <option value="Camión">Camión</option>
+
                   <option value="Vehículo">Vehículo</option>
                 </select>
               </div>
+
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label for="inputPatenteFlota" class="form-label"
                     >Patente</label
                   >
+
                   <input
                     type="text"
                     class="form-control"
@@ -117,10 +141,12 @@
                     required
                   />
                 </div>
+
                 <div class="col-md-6">
                   <label for="inputNroChasisFlota" class="form-label"
                     >Nro Chasis</label
                   >
+
                   <input
                     type="text"
                     class="form-control"
@@ -129,9 +155,11 @@
                   />
                 </div>
               </div>
+
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label for="inputMarcaFlota" class="form-label">Marca</label>
+
                   <select
                     class="form-select"
                     id="inputMarcaFlota"
@@ -139,15 +167,20 @@
                     onchange="actualizarModeloFlota()"
                   >
                     <option value="Freightliner">Freightliner</option>
+
                     <option value="International">International</option>
+
                     <option value="Kenworth">Kenworth</option>
+
                     <option value="Mack Trucks">Mack Trucks</option>
                   </select>
                 </div>
+
                 <div class="col-md-6">
                   <label for="inputModeloFlota" class="form-label"
                     >Modelo</label
                   >
+
                   <select
                     class="form-select"
                     id="inputModeloFlota"
@@ -155,9 +188,11 @@
                   ></select>
                 </div>
               </div>
+
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label for="inputAñoFlota" class="form-label">Año</label>
+
                   <input
                     type="number"
                     class="form-control"
@@ -165,10 +200,12 @@
                     required
                   />
                 </div>
+
                 <div class="col-md-6">
                   <label for="inputCapacidadFlota" class="form-label"
                     >Capacidad</label
                   >
+
                   <input
                     type="number"
                     class="form-control"
@@ -177,10 +214,12 @@
                   />
                 </div>
               </div>
+
               <div class="mb-3">
                 <label for="inputFechaIngresoFlota" class="form-label"
                   >Fecha de Ingreso</label
                 >
+
                 <input
                   type="date"
                   class="form-control"
@@ -188,10 +227,12 @@
                   required
                 />
               </div>
+
               <div class="mb-3">
                 <label for="inputObservacionesFlota" class="form-label"
                   >Observaciones</label
                 >
+
                 <textarea
                   class="form-control"
                   id="inputObservacionesFlota"
@@ -200,6 +241,7 @@
               </div>
             </form>
           </div>
+
           <div class="modal-footer">
             <button
               type="button"
@@ -208,6 +250,7 @@
             >
               Cancelar
             </button>
+
             <button type="button" class="btn btn-primary" id="btnGuardarFlota">
               Guardar Flota
             </button>
@@ -229,6 +272,7 @@
             <h5 class="modal-title" id="modalAgregarChoferesLabel">
               Agregar Nuevo Chofer
             </h5>
+
             <button
               type="button"
               class="btn-close"
@@ -236,10 +280,12 @@
               aria-label="Cerrar"
             ></button>
           </div>
+
           <div class="modal-body">
             <form id="formAgregarChoferes">
               <div class="mb-3">
                 <label for="inputNombreChofer" class="form-label">Nombre</label>
+
                 <input
                   type="text"
                   class="form-control"
@@ -247,10 +293,12 @@
                   required
                 />
               </div>
+
               <div class="mb-3">
                 <label for="inputApellidoChofer" class="form-label"
                   >Apellido</label
                 >
+
                 <input
                   type="text"
                   class="form-control"
@@ -258,10 +306,12 @@
                   required
                 />
               </div>
+
               <div class="mb-3">
                 <label for="inputLicenciaChofer" class="form-label"
                   >Nro. Licencia</label
                 >
+
                 <input
                   type="text"
                   class="form-control"
@@ -271,6 +321,7 @@
               </div>
             </form>
           </div>
+
           <div class="modal-footer">
             <button
               type="button"
@@ -279,6 +330,7 @@
             >
               Cancelar
             </button>
+
             <button
               type="button"
               class="btn btn-primary"
@@ -290,6 +342,210 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal para editar Tabla Flota -->
+
+    <div
+      class="modal fade"
+      id="modalEditarFlota"
+      tabindex="-1"
+      aria-labelledby="modalEditarFlotaLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalEditarFlotaLabel">
+              Editar Registro de Flota
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+            <form id="formEditarFlota">
+              <input type="hidden" id="editarIdFlota" />
+
+              <div class="mb-3">
+                <label for="editarTipoFlota" class="form-label">Tipo</label>
+
+                <select class="form-select" id="editarTipoFlota" required>
+                  <option value="Camión">Camión</option>
+
+                  <option value="Vehículo">Vehículo</option>
+                </select>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarPatenteFlota" class="form-label"
+                    >Patente</label
+                  >
+
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editarPatenteFlota"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarNroChasisFlota" class="form-label"
+                    >Nro Chasis</label
+                  >
+
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editarNroChasisFlota"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarMarcaFlota" class="form-label">Marca</label>
+
+                  <select
+                    class="form-select"
+                    id="editarMarcaFlota"
+                    required
+                    onchange="actualizarModeloEditarFlota()"
+                  >
+                    <option value="Freightliner">Freightliner</option>
+
+                    <option value="International">International</option>
+
+                    <option value="Kenworth">Kenworth</option>
+
+                    <option value="Mack Trucks">Mack Trucks</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarModeloFlota" class="form-label"
+                    >Modelo</label
+                  >
+
+                  <select
+                    class="form-select"
+                    id="editarModeloFlota"
+                    required
+                  ></select>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarAñoFlota" class="form-label">Año</label>
+
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editarAñoFlota"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarCapacidadFlota" class="form-label"
+                    >Capacidad</label
+                  >
+
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editarCapacidadFlota"
+                  />
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="editarFechaIngresoFlota" class="form-label"
+                  >Fecha de Ingreso</label
+                >
+
+                <input
+                  type="date"
+                  class="form-control"
+                  id="editarFechaIngresoFlota"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="editarObservacionesFlota" class="form-label"
+                  >Observaciones</label
+                >
+
+                <textarea
+                  class="form-control"
+                  id="editarObservacionesFlota"
+                  rows="3"
+                ></textarea>
+              </div>
+            </form>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="btnGuardarEditarFlota"
+            >
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Función para actualizar el modelo en el modal de Editar Flota
+
+      function actualizarModeloEditarFlota() {
+        const marca = document.getElementById("editarMarcaFlota").value;
+
+        const modeloSelect = document.getElementById("editarModeloFlota");
+
+        modeloSelect.innerHTML = "";
+
+        let modelos = [];
+
+        if (marca === "Freightliner")
+          modelos = ["Cascadia", "M2 106", "Columbia"];
+        else if (marca === "International")
+          modelos = ["ProStar", "LT Series", "PayStar"];
+        else if (marca === "Kenworth") modelos = ["T680", "W990", "T880"];
+        else if (marca === "Mack Trucks")
+          modelos = ["Anthem", "Granite", "Pinnacle"];
+
+        modelos.forEach(function (modelo) {
+          const option = document.createElement("option");
+
+          option.value = modelo;
+
+          option.textContent = modelo;
+
+          modeloSelect.appendChild(option);
+        });
+      }
+    </script>
 
     <?!= obtenerDatosHtml('js'); ?>
   </body>
