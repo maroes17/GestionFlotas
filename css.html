@@ -1,125 +1,151 @@
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous" type="text/css">
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/3.0.4/css/responsive.bootstrap5.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/3.2.2/css/buttons.dataTables.css">
-
-
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+  integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7"
+  crossorigin="anonymous"
+  type="text/css"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.css"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.datatables.net/responsive/3.0.4/css/responsive.bootstrap5.css"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.datatables.net/buttons/3.2.2/css/buttons.dataTables.css"
+/>
 
 <style>
-   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+  @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap");
 
-::after,
-::before {
+  ::after,
+  ::before {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-}
+  }
 
-a {
+  a {
     text-decoration: none;
-}
+  }
 
-li {
+  li {
     list-style: none;
-}
+  }
 
-h1 {
+  h1 {
     font-weight: 600;
     font-size: 1.5rem;
-}
+  }
 
-body {
-    font-family: 'Poppins', sans-serif;
-}
+  body {
+    font-family: "Poppins", sans-serif;
+  }
 
-.wrapper {
+  .wrapper {
     display: flex;
-}
+  }
 
-.main {
+  .main {
     min-height: 100vh;
     width: 100%;
     overflow: hidden;
     transition: all 0.35s ease-in-out;
     background-color: #fafbfe;
+  }
 
-}
-
-#sidebar {
+  #sidebar {
     width: 70px;
     min-width: 70px;
     z-index: 1000;
-    transition: all .25s ease-in-out;
+    transition: all 0.25s ease-in-out;
     display: flex;
     flex-direction: column;
     background-color: #0e223e;
-}
+  }
 
-#sidebar.expand {
+  #sidebar.expand {
     width: 260px;
     min-width: 260px;
-}
+  }
 
-#toggle-btn {
+  #toggle-btn {
     background-color: transparent;
     cursor: pointer;
     border: 0;
     padding: 1rem 1.5rem;
-}
+  }
 
-#toggle-btn i {
+  #toggle-btn i {
     font-size: 1.5rem;
     color: #fff;
-}
+  }
 
-.sidebar-logo {
+  .sidebar-logo {
     margin: auto 0;
+  }
 
-}
-
-.sidebar-logo a {
+  .sidebar-logo a {
     color: #fff;
     font-size: 1.15rem;
     font-weight: 600;
-}
+  }
 
-#sidebar:not(.expand) .sidebar-logo,
-#sidebar:not(.expand) a.sidebar-link span{
+  #sidebar:not(.expand) .sidebar-logo,
+  #sidebar:not(.expand) a.sidebar-link span {
     display: none;
-}
+  }
 
-.sidebar-nav {
+  .sidebar-nav {
     padding: 2rem 0;
     flex: 1 1 auto;
-}
+  }
 
-button.sidebar-link {
-    padding: .625rem 1.625rem;
+  button.sidebar-link {
+    padding: 0.625rem 1.625rem;
     color: #fff;
     display: block;
     font-size: 0.9rem;
     white-space: nowrap;
     border-left: 3px solid transparent;
-}
+  }
 
-.sidebar-link i {
+  .sidebar-link i {
     font-size: 1.1rem;
-    margin-right: .75rem;
-}
+    margin-right: 0.75rem;
+  }
 
-a.sidebar-link:hover {
-    background-color: rgba(255, 255, 255, .075);
+  a.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.075);
     border-left: 3px solid #3b7ddd;
-}
+  }
 
-.sidebar-item {
+  .sidebar-item {
     position: relative;
-}
+  }
 
-#sidebar:not(expand) .sidebar-item .sidebar-dropdown{
+  #sidebar:not(expand) .sidebar-item .sidebar-dropdown {
     position: absolute;
     top: 0;
     left: 70px;
@@ -127,40 +153,38 @@ a.sidebar-link:hover {
     padding: 0;
     min-width: 15rem;
     display: none;
-}
+  }
 
-#sidebar:not(.expand) .sidebar-item .has-dropdown+.sidebar-dropdown{
+  #sidebar:not(.expand) .sidebar-item .has-dropdown + .sidebar-dropdown {
     display: block;
     max-height: 15em;
     width: 100%;
     opacity: 1;
-}
+  }
 
-#tablaPrueba tr{
+  #tablaPrueba tr {
     cursor: pointer;
-}
+  }
 
-#currentSectionTitle {
+  #currentSectionTitle {
     font-size: 40px;
     color: #3b7ddd;
-    font-weight: 700;   
-}
+    font-weight: 700;
+  }
 
+  /* Estilos opcionales para el modal */
+  .modal-dialog {
+    max-width: 600px;
+  }
 
-/* Estilos opcionales para el modal */
-.modal-dialog {
-  max-width: 600px;
-}
+  .modal-header {
+    background-color: #007bff;
+    color: white;
+  }
 
-.modal-header {
-  background-color: #007bff;
-  color: white;
-}
-
-.modal-footer .btn-secondary {
-  background-color: #6c757d;
-}
-
+  .modal-footer .btn-secondary {
+    background-color: #6c757d;
+  }
 
   .visually-hidden {
     position: absolute !important;
@@ -176,7 +200,7 @@ a.sidebar-link:hover {
 
   /* Más de tus estilos existentes aquí */
 
-/* #sidebar .expand .sidebar-link [data-bs-toggle = "collapse"]::after{
+  /* #sidebar .expand .sidebar-link [data-bs-toggle = "collapse"]::after{
     border: solid;
     border-width: 0 0.75rem 0.75rem 0;
     content: "";
@@ -194,10 +218,10 @@ a.sidebar-link:hover {
     transition: all .2s ease-out;
 } */
 
-
-   /* Estilos para los botones/enlaces del sidebar */
-   .sidebar-nav button.sidebar-link,
-  .sidebar-footer button.sidebar-link { /* Aplicamos también al botón del footer */
+  /* Estilos para los botones/enlaces del sidebar */
+  .sidebar-nav button.sidebar-link,
+  .sidebar-footer button.sidebar-link {
+    /* Aplicamos también al botón del footer */
     display: block;
     width: 100%;
     padding: 0.625rem 1.625rem;
@@ -209,7 +233,8 @@ a.sidebar-link:hover {
     cursor: pointer;
     white-space: nowrap;
     border-left: 3px solid transparent;
-    transition: background-color 0.075s ease-in-out, border-left 0.2s ease-in-out;
+    transition: background-color 0.075s ease-in-out,
+      border-left 0.2s ease-in-out;
   }
 
   .sidebar-nav button.sidebar-link i,
@@ -249,13 +274,22 @@ a.sidebar-link:hover {
     font-weight: 600;
   }
 
-/* Otros estilos existentes aquí */
+  /* Otros estilos existentes aquí */
 
-    /* Estilos para el hover de las filas de la tabla */
-    #tablaPrueba tbody tr:hover {
-      background-color: #ADD8E6 !important; /* Azul claro */
-      cursor: pointer; /* Opcional: cambiar el cursor para indicar interactividad */
-    }
- 
-  </style>
+  /* Estilos para el hover de las filas de la tabla */
+  #tablaPrueba tbody tr:hover {
+    background-color: #add8e6 !important; /* Azul claro */
+    cursor: pointer; /* Opcional: cambiar el cursor para indicar interactividad */
+  }
+
+  /* Estilos para los modales de choferes */
+  #modalAgregarChofer .form-control,
+  #modalEditarChofer .form-control,
+  #modalAgregarChofer .form-select,
+  #modalEditarChofer .form-select {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
   
+</style>
