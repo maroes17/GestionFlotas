@@ -7,7 +7,7 @@ function doGet() {
     .setTitle("Gestión de Flotas");
 }
 
-// 🔵 Incluir archivos HTML dinámicamente
+// 🔵 Incluir HTML dinámico
 function obtenerDatosHtml(nombre) {
   return HtmlService.createHtmlOutputFromFile(nombre).getContent();
 }
@@ -15,7 +15,6 @@ function obtenerDatosHtml(nombre) {
 // 🔵 Leer datos de una hoja
 function getData(sheetName, useCache = true) {
   const cacheKey = `data_${sheetName}`;
-
   if (useCache) {
     const cached = getFromCache(cacheKey);
     if (cached) return cached;
@@ -31,42 +30,40 @@ function getData(sheetName, useCache = true) {
   return result;
 }
 
-// 🔵 Obtener nombre real de la hoja
-function obtenerNombreHoja(sheetName) {
-  return getSheet(sheetName).getName();
-}
-
-// 🔵 Utilidades comunes
+// 🔵 Obtener objeto Sheet
 function getSheet(name) {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
 }
 
+// 🔵 Cache helpers
 function clearCache(cacheKey) {
-  const cache = CacheService.getScriptCache();
-  cache.remove(cacheKey);
+  CacheService.getScriptCache().remove(cacheKey);
 }
 
 function getFromCache(cacheKey) {
-  const cache = CacheService.getScriptCache();
-  const value = cache.get(cacheKey);
+  const value = CacheService.getScriptCache().get(cacheKey);
   return value ? JSON.parse(value) : null;
 }
 
 function setCache(cacheKey, value) {
-  const cache = CacheService.getScriptCache();
-  cache.put(cacheKey, JSON.stringify(value), 1500);
+  CacheService.getScriptCache().put(cacheKey, JSON.stringify(value), 1500);
 }
 
 // 🔵 Generadores de ID
 function generarIdFlota() {
-  const sheet = getSheet("Flota");
-  const lastRow = sheet.getLastRow();
-  const lastId = sheet.getRange(lastRow, 1).getValue();
-  return !isNaN(lastId) && lastId !== "" ? Number(lastId) + 1 : 1;
+  return generarNuevoId("Flota");
 }
 
 function generarIdChofer() {
-  const sheet = getSheet("Choferes");
+  return generarNuevoId("Choferes");
+}
+
+function generarIdSemirremolque() {
+  return generarNuevoId("Semirremolque");
+}
+
+function generarNuevoId(hoja) {
+  const sheet = getSheet(hoja);
   const lastRow = sheet.getLastRow();
   const lastId = sheet.getRange(lastRow, 1).getValue();
   return !isNaN(lastId) && lastId !== "" ? Number(lastId) + 1 : 1;
@@ -93,51 +90,17 @@ function verificarPatenteFlota(patente) {
   return datos.some(row => row[2] && row[2].toString().toUpperCase() === patente.toUpperCase());
 }
 
-function borrarRegistroFlota(idFlota) {
-  const sheet = getSheet("Flota");
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(idFlota)) {
-      sheet.deleteRow(i + 1);
-      clearCache("data_Flota");
-      return "success";
-    }
-  }
-  return "error";
-}
-
 function obtenerRegistroFlota(idFlota) {
-  const cacheKey = `flota_${idFlota}`;
-  const cached = getFromCache(cacheKey);
-  if (cached) return cached;
-
   const { datos } = getData("Flota", false);
-  const registro = datos.find(row => String(row[0]).trim() === String(idFlota).trim());
-
-  if (registro) {
-    setCache(cacheKey, registro);
-    return registro;
-  }
-  return null;
+  return datos.find(row => String(row[0]).trim() === String(idFlota).trim()) || null;
 }
 
 function actualizarRegistroFlota(registroModificado) {
-  const sheet = getSheet("Flota");
-  const data = sheet.getDataRange().getValues();
-  const idBuscado = String(registroModificado[0]).trim();
+  return actualizarRegistroEnHoja("Flota", registroModificado, "data_Flota");
+}
 
-  for (let i = 1; i < data.length; i++) {
-    const idActual = String(data[i][0]).trim(); // 🔥 Siempre tratar ambos como texto
-    if (idActual === idBuscado) {
-      for (let j = 0; j < registroModificado.length; j++) {
-        sheet.getRange(i + 1, j + 1).setValue(registroModificado[j]);
-      }
-      clearCache("data_Flota");
-      clearCache(`flota_${idBuscado}`);
-      return "success";
-    }
-  }
-  throw new Error(`ID de Flota ${idBuscado} no encontrado en la hoja.`);
+function borrarRegistroFlota(idFlota) {
+  return borrarRegistroEnHoja("Flota", idFlota, "data_Flota");
 }
 
 //--------------------------------------
@@ -156,51 +119,18 @@ function obtenerRegistroChofer(idChofer) {
 }
 
 function actualizarRegistroChofer(registroModificado) {
-  const sheet = getSheet("Choferes");
-  const data = sheet.getDataRange().getValues();
-  const idBuscado = String(registroModificado[0]).trim();
-
-  for (let i = 1; i < data.length; i++) {
-    const idActual = String(data[i][0]).trim(); // 🔥
-    if (idActual === idBuscado) {
-      for (let j = 0; j < registroModificado.length; j++) {
-        sheet.getRange(i + 1, j + 1).setValue(registroModificado[j]);
-      }
-      clearCache("data_Choferes");
-      return "success";
-    }
-  }
-  throw new Error(`ID de Chofer ${idBuscado} no encontrado en la hoja.`);
+  return actualizarRegistroEnHoja("Choferes", registroModificado, "data_Choferes");
 }
+
 function borrarRegistroChofer(idChofer) {
-  const sheet = getSheet("Choferes");
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(idChofer)) {
-      sheet.deleteRow(i + 1);
-      clearCache("data_Choferes");
-      return "success";
-    }
-  }
-  return "error";
+  return borrarRegistroEnHoja("Choferes", idChofer, "data_Choferes");
 }
 
-
 //-------------------------------------------
-// SEMIRREMOLQUES
+// CRUD Semirremolque
 //-------------------------------------------
-
-function generarIdSemirremolque() {
-  const sheet = getSheet("Semirremolque");
-  const lastRow = sheet.getLastRow();
-  const lastId = sheet.getRange(lastRow, 1).getValue();
-  return !isNaN(lastId) ? Number(lastId) + 1 : 1;
-}
 
 function agregarRegistroSemirremolque(registro) {
-  if (!Array.isArray(registro) || registro.length < 8) {
-    throw new Error("Formato de registro inválido para Semirremolque");
-  }
   clearCache("data_Semirremolque");
   getSheet("Semirremolque").appendRow(registro);
   return true;
@@ -208,15 +138,23 @@ function agregarRegistroSemirremolque(registro) {
 
 function obtenerRegistroSemirremolque(idSemirremolque) {
   const { datos } = getData("Semirremolque", false);
-  return (
-    datos.find(
-      (row) => String(row[0]).trim() === String(idSemirremolque).trim()
-    ) || null
-  );
+  return datos.find(row => String(row[0]).trim() === String(idSemirremolque).trim()) || null;
 }
 
 function actualizarRegistroSemirremolque(registroModificado) {
-  const sheet = getSheet("Semirremolque");
+  return actualizarRegistroEnHoja("Semirremolque", registroModificado, "data_Semirremolque");
+}
+
+function borrarRegistroSemirremolque(idSemirremolque) {
+  return borrarRegistroEnHoja("Semirremolque", idSemirremolque, "data_Semirremolque");
+}
+
+//-------------------------------------------
+// Helpers de actualización / eliminación
+//-------------------------------------------
+
+function actualizarRegistroEnHoja(nombreHoja, registroModificado, cacheKey) {
+  const sheet = getSheet(nombreHoja);
   const data = sheet.getDataRange().getValues();
   const idBuscado = String(registroModificado[0]).trim();
 
@@ -225,84 +163,22 @@ function actualizarRegistroSemirremolque(registroModificado) {
       for (let j = 0; j < registroModificado.length; j++) {
         sheet.getRange(i + 1, j + 1).setValue(registroModificado[j]);
       }
-      clearCache("data_Semirremolque");
+      clearCache(cacheKey);
       return "success";
     }
   }
-  throw new Error("ID de Semirremolque no encontrado en la hoja.");
+  throw new Error(`ID no encontrado en ${nombreHoja}`);
 }
 
-function actualizarRegistroSemirremolque(registroModificado) {
-  const sheet = getSheet("Semirremolque");
+function borrarRegistroEnHoja(nombreHoja, id, cacheKey) {
+  const sheet = getSheet(nombreHoja);
   const data = sheet.getDataRange().getValues();
-  const idBuscado = String(registroModificado[0]).trim();
+  const idBuscado = String(id).trim();
 
   for (let i = 1; i < data.length; i++) {
-    const idActual = String(data[i][0]).trim(); // 🔥
-    if (idActual === idBuscado) {
-      for (let j = 0; j < registroModificado.length; j++) {
-        sheet.getRange(i + 1, j + 1).setValue(registroModificado[j]);
-      }
-      clearCache("data_Semirremolque");
-      return "success";
-    }
-  }
-  throw new Error(`ID de Semirremolque ${idBuscado} no encontrado en la hoja.`);
-}
-
-// Generar nuevo ID Semirremolque
-function generarIdSemirremolque() {
-  const sheet = getSheet("Semirremolque");
-  const lastRow = sheet.getLastRow();
-  const lastId = sheet.getRange(lastRow, 1).getValue();
-  return !isNaN(lastId) && lastId !== "" ? Number(lastId) + 1 : 1;
-}
-
-// Agregar Semirremolque
-function agregarRegistroSemirremolque(registro) {
-  if (!Array.isArray(registro) || registro.length < 5) {
-    throw new Error("Registro inválido");
-  }
-
-  clearCache("data_Semirremolque");
-  getSheet("Semirremolque").appendRow(registro.map(parseDate));
-  return true;
-}
-
-// Obtener un registro específico de Semirremolque
-function obtenerRegistroSemirremolque(id) {
-  const { datos } = getData("Semirremolque", false);
-  return datos.find((row) => String(row[0]) === String(id)) || null;
-}
-
-// Actualizar registro Semirremolque
-function actualizarRegistroSemirremolque(registroModificado) {
-  const sheet = getSheet("Semirremolque");
-  const data = sheet.getDataRange().getValues();
-  const idBuscado = String(registroModificado[0]);
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === idBuscado) {
-      for (let j = 0; j < registroModificado.length; j++) {
-        sheet.getRange(i + 1, j + 1).setValue(parseDate(registroModificado[j]));
-      }
-      clearCache("data_Semirremolque");
-      return "success";
-    }
-  }
-  return "error";
-}
-
-// Eliminar registro Semirremolque
-function borrarRegistroSemirremolque(id) {
-  const sheet = getSheet("Semirremolque");
-  const data = sheet.getDataRange().getValues();
-  const idBuscado = String(id);
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === idBuscado) {
+    if (String(data[i][0]).trim() === idBuscado) {
       sheet.deleteRow(i + 1);
-      clearCache("data_Semirremolque");
+      clearCache(cacheKey);
       return "success";
     }
   }
