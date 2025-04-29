@@ -28,7 +28,12 @@
               <span>Flota</span>
             </button>
           </li>
-
+          <li class="sidebar-item">
+            <button id="semirremolqueBtn" class="sidebar-link">
+              <i class="bi bi-minecart"></i>
+              <span>Semirremolques</span>
+            </button>
+          </li>
           <li class="sidebar-item">
             <button class="sidebar-link">
               <i class="bi bi-globe-americas"></i>
@@ -58,7 +63,7 @@
       </aside>
 
       <div class="main p-3">
-        <div class="container">
+        <div class="container" style="max-width: 1600px">
           <div
             id="table-header"
             class="d-flex justify-content-between align-items-center mb-3"
@@ -965,6 +970,217 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Agregar Semirremolque -->
+    <div
+      class="modal fade"
+      id="modalAgregarSemirremolque"
+      tabindex="-1"
+      aria-labelledby="modalAgregarSemirremolqueLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="modalAgregarSemirremolqueLabel">
+              Agregar Semirremolque
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formAgregarSemirremolque">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="inputPatenteSemirremolque" class="form-label"
+                    >Patente</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="inputPatenteSemirremolque"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputGensetSemirremolque" class="form-label"
+                    >Nro Genset</label
+                  >
+                  <input
+                    type="text"
+                    id="inputNroGensetSemirremolque"
+                    class="form-control"
+                    placeholder="Nro Genset"
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputTipoSemirremolque" class="form-label"
+                    >Tipo</label
+                  >
+                  <select
+                    class="form-select"
+                    id="inputTipoSemirremolque"
+                    required
+                  >
+                    <option value="">Seleccione tipo</option>
+                    <option value="Chasis Portacontenedor">
+                      Chasis Portacontenedor
+                    </option>
+                    <option value="Frigorífico">Frigorífico</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="inputAnoSemirremolque" class="form-label"
+                    >Año</label
+                  >
+                  <input
+                    type="number"
+                    id="inputAñoSemirremolque"
+                    class="form-control"
+                    placeholder="Año"
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputEstadoSemirremolque" class="form-label"
+                    >Estado</label
+                  >
+                  <select
+                    class="form-select"
+                    id="inputEstadoSemirremolque"
+                    required
+                  >
+                    <option value="">Seleccione estado</option>
+                    <option value="Disponible">Disponible</option>
+                    <option value="Mantención">Mantención</option>
+                    <option value="Siniestro">Siniestro</option>
+                    <option value="Robado">Robado</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="inputAsignadoSemirremolque" class="form-label"
+                    >Asignado a Chofer</label
+                  >
+                  <select
+                    id="inputAsignadoChoferSemirremolque"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione chofer</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label
+                    for="inputObservacionesSemirremolque"
+                    class="form-label"
+                    >Observaciones</label
+                  >
+                  <textarea
+                    class="form-control"
+                    id="inputObservacionesSemirremolque"
+                    rows="3"
+                  ></textarea>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              id="btnGuardarSemirremolque"
+              class="btn btn-primary"
+            >
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Editar Semirremolque -->
+<div class="modal fade" id="modalEditarSemirremolque" tabindex="-1" aria-labelledby="modalEditarSemirremolqueLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formEditarSemirremolque">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalEditarSemirremolqueLabel">Editar Semirremolque</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" id="editarIdSemirremolque" />
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="editarPatenteSemirremolque" class="form-label">Patente</label>
+              <input type="text" id="editarPatenteSemirremolque" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+              <label for="editarNroGensetSemirremolque" class="form-label">N° Genset</label>
+              <input type="text" id="editarNroGensetSemirremolque" class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+              <label for="editarTipoSemirremolque" class="form-label">Tipo</label>
+              <select id="editarTipoSemirremolque" class="form-select" required>
+                <option value="">Seleccione tipo</option>
+                <option value="Chasis Portacontenedor">Chasis Portacontenedor</option>
+                <option value="Frigorífico">Frigorífico</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="editarAñoSemirremolque" class="form-label">Año</label>
+              <input type="number" id="editarAñoSemirremolque" class="form-control" min="1990" max="2100" required />
+            </div>
+
+            <div class="col-md-6">
+              <label for="editarEstadoSemirremolque" class="form-label">Estado</label>
+              <select id="editarEstadoSemirremolque" class="form-select" required>
+                <option value="">Seleccione estado</option>
+                <option value="Disponible">Disponible</option>
+                <option value="Mantención">Mantención</option>
+                <option value="Siniestro">Siniestro</option>
+                <option value="Robado">Robado</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="editarAsignadoChoferSemirremolque" class="form-label">Asignado a Chofer</label>
+              <select id="editarAsignadoChoferSemirremolque" class="form-select">
+                <option value="">Seleccione chofer</option>
+                <!-- Se cargará dinámicamente -->
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label for="editarObservacionesSemirremolque" class="form-label">Observaciones</label>
+              <textarea id="editarObservacionesSemirremolque" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnGuardarEditarSemirremolque">
+            <i class="bi bi-save"></i> Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
     <?!= obtenerDatosHtml('js'); ?>
   </body>

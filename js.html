@@ -172,35 +172,37 @@ function formatearFecha(fechaISO) {
 
   // Función optimizada para crear botones de acción
   function createActionButtons() {
-    const actionsDiv = document.getElementById("action-buttons");
-    actionsDiv.innerHTML = "";
+  const actionsDiv = document.getElementById("action-buttons");
+  actionsDiv.innerHTML = "";
 
-    // Botón Actualizar
-    const refreshBtn = createButton(
-      "btn-outline-primary",
-      "bi-arrow-clockwise",
-      "Actualizar",
-      () => {
-        loadTableData(currentSheetName);
+  // Botón Actualizar
+  const refreshBtn = createButton(
+    "btn-outline-primary",
+    "bi-arrow-clockwise",
+    "Actualizar",
+    () => {
+      loadTableData(currentSheetName);
+    }
+  );
+
+  // Botón Agregar
+  const addNewBtn = createButton(
+    "btn-outline-success",
+    "bi-plus-circle",
+    "Agregar",
+    () => {
+      if (currentSheetName === "Flota") {
+        showAddModal("modalAgregarFlota", "Agregar nuevo registro en Flota");
+      } else if (currentSheetName === "Choferes") {
+        showAddModal("modalAgregarChofer", "Agregar nuevo Chofer");
+      } else if (currentSheetName === "Semirremolque") {
+        showAddModal("modalAgregarSemirremolque", "Agregar nuevo Semirremolque");
       }
-    );
+    }
+  );
 
-    // Botón Agregar
-    const addNewBtn = createButton(
-      "btn-outline-success",
-      "bi-plus-circle",
-      "Agregar",
-      () => {
-        if (currentSheetName === "Flota") {
-          showAddModal("modalAgregarFlota", "Agregar nuevo registro en Flota");
-        } else if (currentSheetName === "Choferes") {
-          showAddModal("modalAgregarChofer", "Agregar nuevo Chofer");
-        }
-      }
-    );
-
-    actionsDiv.append(refreshBtn, addNewBtn);
-  }
+  actionsDiv.append(refreshBtn, addNewBtn);
+}
 
   // Helper para crear botones
   function createButton(btnClass, iconClass, text, onClick) {
@@ -219,113 +221,75 @@ function formatearFecha(fechaISO) {
 
     // 🔥 Solo si abrimos el Modal Agregar Chofer, cargamos las patentes
     if (modalId === "modalAgregarChofer") {
-      cargarOpcionesFlota();
-    }
+    cargarOpcionesFlota();
+  } else if (modalId === "modalAgregarSemirremolque") {
+    cargarOpcionesChoferes(); // 🔥 Debemos crear esta función para cargar el listado de choferes
+  }
 
     modal.show();
   }
   // Función optimizada para actualizar la tabla
   function updateTable(headers, data) {
-    // 🔵 Destruir tabla anterior si existe
-    if (dataTableInstance) {
-      dataTableInstance.destroy();
-      document.getElementById("tablaPrueba").innerHTML = "";
-    }
-
-    // 🔵 Configuración base de DataTable
-    const baseConfig = {
-      responsive: true,
-      language: { url: "//cdn.datatables.net/plug-ins/2.2.2/i18n/es-CL.json" },
-      layout: {
-        topStart: { buttons: [{ extend: "colvis", text: "Columnas" }] },
-      },
-    };
-
-    // 🔵 Estructura de columnas
-    const formattedCols = headers.map((header) => ({ title: header }));
-    formattedCols.push({ title: "Acciones", orderable: false });
-
-    // 🔵 Si estamos en Flota
-    if (currentSheetName === "Flota") {
-      dataTableInstance = new DataTable("#tablaPrueba", {
-        ...baseConfig,
-        data: data.map((row) => [...row, ""]),
-        columns: formattedCols,
-        columnDefs: getFlotaColumnDefs(headers),
-        createdRow: function (row, data) {
-          $(row).attr("data-id", data[0]);
-        },
-      });
-
-      // 🔵 Botones de Editar y Borrar para Flota
-      $(document)
-        .off("click", ".btn-editar-flota")
-        .on("click", ".btn-editar-flota", async function () {
-          const idFlota = $(this).data("id");
-          try {
-            const registro = await runGoogleFunction(
-              "obtenerRegistroFlota",
-              idFlota
-            );
-            if (registro) {
-              llenarModalEditarFlota(registro);
-              const modal = new bootstrap.Modal(
-                document.getElementById("modalEditarFlota")
-              );
-              modal.show();
-            } else {
-              Swal.fire("Error", "Registro no encontrado", "error");
-            }
-          } catch (error) {
-            console.error("Error al editar:", error);
-            Swal.fire(
-              "Error",
-              error.message || "Error al cargar datos",
-              "error"
-            );
-          }
-        });
-
-      $(document)
-        .off("click", ".btn-borrar-flota")
-        .on("click", ".btn-borrar-flota", function () {
-          const idFlota = $(this).data("id");
-
-          Swal.fire({
-            title: "¿Estás seguro?",
-            text: `Se eliminará el registro con ID: ${idFlota}`,
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#dc3545",
-            cancelButtonColor: "#6c757d",
-            confirmButtonText: "Sí, borrar",
-            cancelButtonText: "Cancelar",
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              try {
-                await runGoogleFunction("borrarRegistroFlota", idFlota);
-                Swal.fire(
-                  "¡Borrado!",
-                  "Registro eliminado correctamente.",
-                  "success"
-                );
-                await loadTableData("Flota");
-              } catch (error) {
-                console.error("Error al borrar:", error);
-                Swal.fire("Error", "No se pudo borrar el registro.", "error");
-              }
-            }
-          });
-        });
-    } else {
-      // 🔵 Otros módulos (Choferes no usa DataTable)
-      dataTableInstance = new DataTable("#tablaPrueba", {
-        ...baseConfig,
-        data: data.map((row) => [...row, ""]),
-        columns: formattedCols,
-      });
-    }
+  // 🔵 Destruir tabla anterior si existe
+  if (dataTableInstance) {
+    dataTableInstance.destroy();
+    document.getElementById("tablaPrueba").innerHTML = "";
   }
+
+  // 🔵 Configuración base de DataTable
+  const baseConfig = {
+    responsive: true,
+    language: { url: "//cdn.datatables.net/plug-ins/2.2.2/i18n/es-CL.json" },
+    layout: {
+      topStart: { buttons: [{ extend: "colvis", text: "Columnas" }] },
+    },
+  };
+
+  // 🔵 Estructura de columnas
+  const formattedCols = headers.map((header, index) => ({
+    title: header,
+    className: index === 0 ? "text-center" : "", // 👉 Centrar solo el ID
+  }));
+
+  formattedCols.push({ title: "Acciones", orderable: false });
+
+  // 🔵 Si estamos en Flota
+  if (currentSheetName === "Flota") {
+    dataTableInstance = new DataTable("#tablaPrueba", {
+      ...baseConfig,
+      data: data.map((row) => [...row, ""]),
+      columns: formattedCols,
+      columnDefs: getFlotaColumnDefs(headers),
+      createdRow: function (row, data) {
+        $(row).attr("data-id", data[0]);
+      },
+    });
+
+    setupBotonesFlota();
+  } 
+  // 🔵 Si estamos en Semirremolque
+  else if (currentSheetName === "Semirremolque") {
+    dataTableInstance = new DataTable("#tablaPrueba", {
+      ...baseConfig,
+      data: data.map((row) => [...row, ""]),
+      columns: formattedCols,
+      columnDefs: getSemirremolqueColumnDefs(headers),
+      createdRow: function (row, data) {
+        $(row).attr("data-id", data[0]);
+      },
+    });
+
+    setupBotonesSemirremolque();
+  }
+  else {
+    // 🔵 Otros módulos
+    dataTableInstance = new DataTable("#tablaPrueba", {
+      ...baseConfig,
+      data: data.map((row) => [...row, ""]),
+      columns: formattedCols,
+    });
+  }
+}
 
   // Obtener definiciones de columnas para Flota
   function getFlotaColumnDefs(headers) {
@@ -473,18 +437,19 @@ function formatearFecha(fechaISO) {
 
   // Helper para obtener datos del formulario
   function getFormData(formId) {
-    const form = document.getElementById(formId);
-    const data = {};
+  const form = document.getElementById(formId);
+  const data = {};
 
-    form.querySelectorAll("input, select, textarea").forEach((field) => {
-      if (field.id) {
-        const key = field.id.replace(/^input|^editar/, "").toLowerCase();
-        data[key] = field.value.trim();
-      }
-    });
+  form.querySelectorAll("input, select, textarea").forEach((field) => {
+    if (field.id) {
+      let key = field.id.replace(/^input|^editar/, ""); // quitar input o editar
+      key = key.replace(/semirremolque|flota|chofer/gi, ""); // quitar otras palabras
+      data[key.toLowerCase()] = field.value.trim();
+    }
+  });
 
-    return data;
-  }
+  return data;
+}
 
   // Función de validación de formulario
   function validarFormularioFlota(formId) {
@@ -1435,6 +1400,440 @@ function formatearFecha(fechaISO) {
     document.getElementById("formAgregarChofer").reset(); // Limpiar formulario
     modal.show();
   }
+
+//------------------------------
+// Cargar módulo Semirremolque
+//------------------------------
+document
+  .querySelector("#semirremolqueBtn")
+  .addEventListener("click", () => loadTableData("Semirremolque"));
+
+// Guardar cambios de Semirremolque (Editar)
+document.getElementById("btnGuardarEditarSemirremolque").onclick = async function () {
+  const btn = this;
+  const originalText = btn.textContent;
+
+  try {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
+
+    const form = document.getElementById("formEditarSemirremolque");
+    if (!form.checkValidity()) {
+      form.classList.add("was-validated");
+      throw new Error("Completa todos los campos requeridos.");
+    }
+
+    const formData = getFormData("formEditarSemirremolque");
+
+    const registroModificado = [
+      Number(formData.idsemirremolque),
+      formData.patentesemirremolque || "",
+      formData.gensetsemirremolque || "",
+      formData.tiposamirremolque || "",
+      formData.anosamirremolque || "",
+      formData.estadosamirremolque || "",
+      formData.asignadosamirremolque || "",
+      formData.observacionessamirremolque || "",
+    ];
+
+    const resultado = await runGoogleFunction("actualizarRegistroSemirremolque", registroModificado);
+
+    if (resultado === "success") {
+      $("#modalEditarSemirremolque").modal("hide");
+
+      await Swal.fire({
+        icon: "success",
+        title: "Actualizado",
+        text: "El semirremolque fue actualizado correctamente.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      await loadTableData(currentSheetName);
+    } else {
+      throw new Error("No se pudo actualizar en el servidor.");
+    }
+  } catch (error) {
+    console.error("❌ Error al actualizar Semirremolque:", error);
+    Swal.fire("Error", error.message || "No se pudo actualizar correctamente.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+};
+
+// Función para cargar lista de choferes en el modal Semirremolque
+async function cargarOpcionesChoferes() {
+  const { datos: datosChoferes } = await runGoogleFunction("getData", "Choferes");
+
+  const selectChofer = document.getElementById("inputAsignadoChoferSemirremolque");
+  selectChofer.innerHTML = '<option value="">Seleccione chofer</option>'; // Limpiar opciones
+
+  datosChoferes.forEach((chofer) => {
+    if (chofer[1]) { // El nombre del chofer está en columna 1
+      const option = document.createElement("option");
+      option.value = chofer[1];
+      option.textContent = chofer[1];
+      selectChofer.appendChild(option);
+    }
+  });
+}
+
+// Evento botón Guardar Semirremolque
+document.getElementById("btnGuardarSemirremolque").onclick = async function () {
+  const btn = this;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+
+  try {
+    const formData = getFormData("formAgregarSemirremolque");
+    const idSemirremolque = await runGoogleFunction("generarIdSemirremolque");
+
+    const registro = [
+      idSemirremolque,
+      formData.patente || "",
+      String(formData.nrogenset || ""), // 🔵 Siempre como texto
+      formData.tipo || "",
+      formData.año ? Number(formData.año) : "", // 🔵 Año como número
+      formData.estado || "",
+      formData.asignado || "",
+      formData.observaciones || "",
+    ];
+
+    await runGoogleFunction("agregarRegistroSemirremolque", registro);
+
+    $("#modalAgregarSemirremolque").modal("hide");
+
+    await Swal.fire({
+      icon: "success",
+      title: "Guardado",
+      text: "El semirremolque se ha guardado correctamente",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    await loadTableData(currentSheetName);
+  } catch (error) {
+    console.error("❌ Error al guardar semirremolque:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: error.message || "Error al guardar semirremolque",
+    });
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+};
+
+
+function getSemirremolqueColumnDefs(headers) {
+  const columnDefs = [];
+
+  // Centramos el ID (columna 0)
+  columnDefs.push({
+    targets: 0,
+    className: "text-center",
+  });
+
+  // Centramos la columna "Nro Genset" si existe
+  const nroGensetIndex = headers.indexOf("Nro Genset");
+  if (nroGensetIndex !== -1) {
+    columnDefs.push({
+      targets: nroGensetIndex,
+      className: "text-center",
+    });
+  }
+
+  // Etiqueta de Estado como badge
+  const estadoIndex = headers.indexOf("Estado");
+  if (estadoIndex !== -1) {
+    columnDefs.push({
+      targets: estadoIndex,
+      render: function (data) {
+        let badgeClass = "";
+        const estado = (data || "").toLowerCase();
+        switch (estado) {
+          case "disponible":
+            badgeClass = "estado-disponible badge-estado-flota";
+            break;
+          case "mantención":
+            badgeClass = "estado-mantencion badge-estado-flota";
+            break;
+          case "siniestro":
+            badgeClass = "estado-siniestro badge-estado-flota";
+            break;
+          case "robado":
+            badgeClass = "estado-robado badge-estado-flota";
+            break;
+          default:
+            badgeClass = "badge-estado-flota";
+        }
+        return `<span class="badge ${badgeClass}">${data}</span>`;
+      },
+    });
+  }
+
+  // Columna Acciones (editar y borrar)
+  columnDefs.push({
+    targets: -1,
+    orderable: false,
+    render: (data, type, row) => `
+      <div class="d-flex justify-content-center align-items-center gap-1">
+        <button class="btn btn-sm btn-warning btn-editar-semirremolque" data-id="${row[0]}" title="Editar">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="btn btn-sm btn-danger btn-borrar-semirremolque" data-id="${row[0]}" title="Borrar">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    `,
+  });
+
+  return columnDefs;
+}
+
+function setupBotonesSemirremolque() {
+  $(document)
+    .off("click", ".btn-editar-semirremolque")
+    .on("click", ".btn-editar-semirremolque", async function () {
+      const idSemirremolque = $(this).data("id");
+      try {
+        const registro = await runGoogleFunction(
+          "obtenerRegistroSemirremolque",
+          idSemirremolque
+        );
+        if (registro) {
+          llenarModalEditarSemirremolque(registro);
+          const modal = new bootstrap.Modal(
+            document.getElementById("modalEditarSemirremolque")
+          );
+          modal.show();
+        } else {
+          Swal.fire("Error", "Registro no encontrado", "error");
+        }
+      } catch (error) {
+        console.error("Error al editar:", error);
+        Swal.fire(
+          "Error",
+          error.message || "Error al cargar datos para editar.",
+          "error"
+        );
+      }
+    });
+
+  $(document)
+    .off("click", ".btn-borrar-semirremolque")
+    .on("click", ".btn-borrar-semirremolque", async function () {
+      const idSemirremolque = $(this).data("id");
+
+      const confirmacion = await Swal.fire({
+        title: "¿Estás seguro?",
+        text: `Se eliminará el registro con ID: ${idSemirremolque}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Sí, borrar",
+        cancelButtonText: "Cancelar",
+      });
+
+      if (confirmacion.isConfirmed) {
+        try {
+          await runGoogleFunction(
+            "borrarRegistroSemirremolque",
+            idSemirremolque
+          );
+          Swal.fire("¡Borrado!", "Registro eliminado correctamente.", "success");
+          await loadTableData("Semirremolque");
+        } catch (error) {
+          console.error("Error al borrar:", error);
+          Swal.fire("Error", "No se pudo borrar el registro.", "error");
+        }
+      }
+    });
+}
+
+//Función para llenar modal editar semirremolque
+function llenarModalEditarSemirremolque(registro) {
+  try {
+    document.getElementById("editarIdSemirremolque").value = registro[0];
+    document.getElementById("editarPatenteSemirremolque").value = registro[1];
+    document.getElementById("editarNroGensetSemirremolque").value = registro[2];
+    document.getElementById("editarTipoSemirremolque").value = registro[3];
+    document.getElementById("editarAñoSemirremolque").value = registro[4];
+    document.getElementById("editarEstadoSemirremolque").value = registro[5];
+    document.getElementById("editarObservacionesSemirremolque").value = registro[7];
+
+    // Cargar asignado a chofer dinámicamente
+    cargarOpcionesChoferesEditar().then(() => {
+      document.getElementById("editarAsignadoChoferSemirremolque").value = registro[6] || "";
+    });
+
+  } catch (error) {
+    console.error("Error al llenar modal editar semirremolque:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudieron cargar los datos para editar el semirremolque",
+    });
+  }
+}
+
+function setupBotonesFlota() {
+  $(document)
+    .off("click", ".btn-editar-flota")
+    .on("click", ".btn-editar-flota", async function () {
+      const idFlota = $(this).data("id");
+      try {
+        const registro = await runGoogleFunction("obtenerRegistroFlota", idFlota);
+        if (registro) {
+          llenarModalEditarFlota(registro);
+          const modal = new bootstrap.Modal(document.getElementById("modalEditarFlota"));
+          modal.show();
+        } else {
+          Swal.fire("Error", "Registro no encontrado", "error");
+        }
+      } catch (error) {
+        console.error("Error al editar:", error);
+        Swal.fire("Error", "No se pudo cargar el registro", "error");
+      }
+    });
+
+  $(document)
+    .off("click", ".btn-borrar-flota")
+    .on("click", ".btn-borrar-flota", async function () {
+      const idFlota = $(this).data("id");
+
+      const confirmacion = await Swal.fire({
+        title: "¿Estás seguro?",
+        text: `Se eliminará el registro con ID: ${idFlota}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Sí, borrar",
+        cancelButtonText: "Cancelar",
+      });
+
+      if (confirmacion.isConfirmed) {
+        try {
+          await runGoogleFunction("borrarRegistroFlota", idFlota);
+          Swal.fire("¡Borrado!", "Registro eliminado correctamente.", "success");
+          await loadTableData("Flota");
+        } catch (error) {
+          console.error("Error al borrar:", error);
+          Swal.fire("Error", "No se pudo borrar el registro", "error");
+        }
+      }
+    });
+}
+
+
+//Función botón Guardar Camios Editar Semirremolque
+document.getElementById("btnGuardarEditarSemirremolque").onclick = async function () {
+  const btn = this;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+
+  try {
+    const formData = getFormData("formEditarSemirremolque");
+
+    const registroModificado = [
+      Number(formData.idsemirremolque),
+      formData.patentesemirremolque || "",
+      formData.nrogensetsemirremolque || "",
+      formData.tipossemirremolque || "",
+      formData.añosemirremolque || "",
+      formData.estadosemirremolque || "",
+      formData.asignadochofersemirremolque || "",
+      formData.observacionessemirremolque || "",
+    ];
+
+    const resultado = await runGoogleFunction("actualizarRegistroSemirremolque", registroModificado);
+
+    if (resultado === "success") {
+      const modal = bootstrap.Modal.getInstance(document.getElementById("modalEditarSemirremolque"));
+      modal.hide();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Actualizado",
+        text: "El registro fue actualizado correctamente",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      await loadTableData(currentSheetName);
+    } else {
+      throw new Error("No se pudo actualizar el registro");
+    }
+  } catch (error) {
+    console.error("Error al actualizar semirremolque:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: error.message || "Error al actualizar el semirremolque",
+    });
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+};
+
+async function cargarOpcionesChoferesEditar() {
+  const { datos: datosChoferes } = await runGoogleFunction("getData", "Choferes");
+
+  const select = document.getElementById("editarAsignadoChoferSemirremolque");
+  select.innerHTML = '<option value="">Seleccione chofer</option>';
+
+  datosChoferes.forEach((chofer) => {
+    const option = document.createElement("option");
+    option.value = chofer[1]; // Nombre del chofer
+    option.textContent = chofer[1];
+    select.appendChild(option);
+  });
+}
+
+//Función Borrar Semirremolque
+
+$(document)
+  .off("click", ".btn-borrar-semirremolque")
+  .on("click", ".btn-borrar-semirremolque", function () {
+    const idSemirremolque = $(this).data("id");
+
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: `Se eliminará el semirremolque con ID: ${idSemirremolque}`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await runGoogleFunction("borrarRegistroSemirremolque", idSemirremolque);
+
+          Swal.fire({
+            icon: "success",
+            title: "Eliminado",
+            text: "Semirremolque eliminado correctamente",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          await loadTableData(currentSheetName);
+        } catch (error) {
+          console.error("Error al eliminar semirremolque:", error);
+          Swal.fire("Error", "No se pudo eliminar el semirremolque", "error");
+        }
+      }
+    });
+  });
 
 
 </script>

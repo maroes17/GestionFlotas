@@ -50,21 +50,28 @@ function getSpreadsheet() {
   /**
    * Valida si un valor es una fecha
    */
+  // function parseDate(value) {
+  //   if (value === null || value === undefined) {
+  //     return ""; // 🔵 Si es nulo, devolver texto vacío
+  //   }
+  
+  //   if (typeof value === "string" && value.includes("/")) {
+  //     const parts = value.split("/");
+  //     if (parts.length === 3) {
+  //       const day = parseInt(parts[0], 10);
+  //       const month = parseInt(parts[1], 10) - 1;
+  //       const year = parseInt(parts[2], 10);
+  //       return new Date(year, month, day);
+  //     }
+  //   }
+  
+  //   return value.toString(); // Si no es fecha, devuelve texto
+  // }
+  
   function parseDate(value) {
-    if (value === null || value === undefined) {
-      return ""; // 🔵 Si es nulo, devolver texto vacío
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [yyyy, mm, dd] = value.split("-");
+      return `${dd}-${mm}-${yyyy}`;
     }
-  
-    if (typeof value === "string" && value.includes("/")) {
-      const parts = value.split("/");
-      if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        return new Date(year, month, day);
-      }
-    }
-  
-    return value.toString(); // Si no es fecha, devuelve texto
+    return value;
   }
-  
