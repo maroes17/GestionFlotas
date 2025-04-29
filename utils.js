@@ -51,25 +51,20 @@ function getSpreadsheet() {
    * Valida si un valor es una fecha
    */
   function parseDate(value) {
-    if (value instanceof Date) {
-      // Formatea como dd-mm-yyyy
-      const day = String(value.getDate()).padStart(2, '0');
-      const month = String(value.getMonth() + 1).padStart(2, '0');
-      const year = value.getFullYear();
-      return `${day}-${month}-${year}`;
+    if (value === null || value === undefined) {
+      return ""; // 🔵 Si es nulo, devolver texto vacío
     }
-    if (typeof value === 'string') {
-      // Si ya viene como string yyyy-mm-dd, lo reordeno a dd-mm-yyyy
-      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = value.split("-");
-        return `${day}-${month}-${year}`;
-      }
-      // Si viene como dd/mm/yyyy (Google Forms típico), lo limpio igual
-      if (value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        const [day, month, year] = value.split("/");
-        return `${day}-${month}-${year}`;
+  
+    if (typeof value === "string" && value.includes("/")) {
+      const parts = value.split("/");
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
       }
     }
-    return value;
+  
+    return value.toString(); // Si no es fecha, devuelve texto
   }
   

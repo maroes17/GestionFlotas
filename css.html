@@ -36,6 +36,7 @@
   href="https://cdn.datatables.net/buttons/3.2.2/css/buttons.dataTables.css"
 />
 
+
 <style>
   @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap");
 
@@ -198,6 +199,20 @@
     border: 0 !important;
   }
 
+  /* 🔥 Header de tablas Flota y otros */
+  table.dataTable thead {
+  background-color: #007bff; /* Azul fuerte */
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* 🔵 Opcional: color de fila activa */
+table.dataTable tbody tr:hover {
+  background-color: #f1f3f5;
+}
+
   /* Más de tus estilos existentes aquí */
 
   /* #sidebar .expand .sidebar-link [data-bs-toggle = "collapse"]::after{
@@ -276,11 +291,65 @@
 
   /* Otros estilos existentes aquí */
 
-  /* Estilos para el hover de las filas de la tabla */
-  #tablaPrueba tbody tr:hover {
-    background-color: #add8e6 !important; /* Azul claro */
-    cursor: pointer; /* Opcional: cambiar el cursor para indicar interactividad */
-  }
+  /* 🔵 Bordes redondeados tabla */
+#tablaPrueba {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#tablaPrueba thead th {
+  background-color: #0d6efd !important; /* Azul fuerte */
+  color: white !important;
+  font-weight: bold;
+  text-align: center;
+  font-size: 0.95rem;
+  border-bottom: 2px solid #0a58ca; /* Borde más oscuro */
+}
+
+/* Estilo de las filas */
+#tablaPrueba tbody td {
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+/* Hover elegante */
+#tablaPrueba tbody tr:hover {
+  background-color: #f1f3f5;
+  transition: background-color 0.3s ease;
+}
+
+
+/* Sombra suave */
+.dataTables_wrapper .dataTables_scroll {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* Ajustes de botones de paginación */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  padding: 0.4em 1em;
+  margin-left: 4px;
+  border-radius: 0.5rem;
+  background-color: #e9ecef;
+  color: #007bff !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background-color: #007bff !important;
+  color: white !important;
+}
+
+/* Input de búsqueda */
+.dataTables_wrapper .dataTables_filter input {
+  border-radius: 0.5rem;
+  border: 1px solid #ced4da;
+  padding: 6px;
+  font-size: 0.85rem;
+}
 
   /* Estilos para los modales de choferes */
   #modalAgregarChofer .form-control,
@@ -291,5 +360,79 @@
     font-size: 0.875rem;
   }
 
-  
+  /* Estilos para las Cards de Choferes */
+  .card-chofer {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+  }
+
+  .card-chofer:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .card-chofer img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin: 10px auto 5px;
+    display: block;
+    border: 3px solid #ccc; /* Valor base */
+    transition: border-color 0.3s ease;
+  }
+
+  /* 🔥 Borde dinámico según estado Choferes*/
+  .borde-disponible {
+    border-color: #28a745 !important; /* Verde */
+  }
+
+  .borde-en-ruta {
+    border-color: #007bff !important; /* Azul */
+  }
+
+  .borde-licencia {
+    border-color: #ffc107 !important; /* Amarillo */
+  }
+
+  .borde-baja {
+    border-color: #dc3545 !important; /* Rojo */
+  }
+
+  .estado-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    max-width: max-content;
+    margin: 5px auto;
+  }
+
+  /* 🔵 Ajustar tamaño de la etiqueta de estado Flota */
+.badge-estado-flota {
+  font-size: 0.75rem;
+  padding: 0.35em 0.6em;
+  border-radius: 0.5rem;
+}
+
+.estado-disponible {
+  background-color: #28a745; /* Verde */
+}
+
+.estado-en-ruta,
+.estado-mantencion {
+  background-color: #17a2b8; /* Celeste */
+}
+
+.estado-licencia,
+.estado-siniestro {
+  background-color: #ffc107; /* Amarillo */
+}
+
+.estado-baja,
+.estado-robado {
+  background-color: #dc3545; /* Rojo */
+}
 </style>

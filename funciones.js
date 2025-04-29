@@ -52,18 +52,22 @@ function generarIdFlota() {
 
 // Agregar registro de Flota
 function agregarRegistroFlota(registro) {
-  if (!Array.isArray(registro) || registro.length < 8) {
-    throw new Error("Formato de registro inválido");
+    if (!Array.isArray(registro) || registro.length < 8) {
+      throw new Error("Formato de registro inválido");
+    }
+  
+    if (verificarPatenteFlota(registro[2])) {
+      throw new Error("La patente ya existe en el sistema");
+    }
+  
+    clearCache("data_Flota");
+  
+    getSheet("Flota").appendRow(registro); // 🔥 Ya no aplicamos parseDate
+    
+    return true;
   }
-
-  if (verificarPatenteFlota(registro[2])) {
-    throw new Error("La patente ya existe en el sistema");
-  }
-
-  clearCache("data_Flota");
-  getSheet("Flota").appendRow(registro.map(parseDate));
-  return true;
-}
+  
+  
 
 // Verificar patente única en Flota
 function verificarPatenteFlota(patente) {
@@ -203,18 +207,3 @@ function generarIdChofer() {
   return !isNaN(lastId) && lastId != "" ? Number(lastId) + 1 : 1;
 }
 
-function subirFotoChofer(base64Data, fileName) {
-    if (!fileName || fileName.trim() === "") {
-      fileName = "foto_chofer_" + new Date().getTime() + ".png"; 
-    }
-  
-    const folderId = "1V89QiqCjjXKFIy-uwH9isjT71xOcyD3t"; // 👈 Pon tu ID de carpeta Drive aquí
-    const folder = DriveApp.getFolderById(folderId);
-  
-    const decodedBytes = Utilities.base64Decode(base64Data); // 🔥 Decodificar base64
-    const blob = Utilities.newBlob(decodedBytes, MimeType.PNG, fileName); // 🔥 Crear blob
-    const file = folder.createFile(blob); // 🔥 Subir blob a Drive
-  
-    return file.getUrl(); // o file.getId() si prefieres
-  }
-  

@@ -70,7 +70,19 @@
 
             <div id="action-buttons"></div>
           </div>
-          <div id="cards-choferes" class="row g-3 mb-4"></div>
+          <!-- Contenedor dinámico para Filtros de Choferes -->
+          <div
+            id="filtros-choferes"
+            class="d-flex justify-content-center mb-4 gap-2"
+            style="display: none"
+          >
+            <!-- Aquí JS generará dinámicamente los botones -->
+          </div>
+
+          <!-- Contenedor dinámico para Cards de Choferes -->
+          <div id="cards-choferes" class="row g-3 mb-4" style="display: none">
+            <!-- Aquí JS generará dinámicamente las cards -->
+          </div>
 
           <table
             id="tablaPrueba"
@@ -468,37 +480,79 @@
     </div>
 
     <!-- Modal Agregar Chofer -->
-<div class="modal fade" id="modalAgregarChofer" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalAgregarChoferLabel">Agregar Nuevo Chofer</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formAgregarChofer">
-  
-            <!-- Primera fila: Nombre completo y DNI -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="inputNombreChofer" class="form-label">Nombre completo</label>
-                <input type="text" id="inputNombreChofer" name="nombrechofer" class="form-control" required>
+    <div
+      class="modal fade"
+      id="modalAgregarChofer"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarChoferLabel">
+              Agregar Nuevo Chofer
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formAgregarChofer">
+              <!-- Primera fila: Nombre completo y DNI -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputNombreChofer" class="form-label"
+                    >Nombre completo</label
+                  >
+                  <input
+                    type="text"
+                    id="inputNombreChofer"
+                    name="nombrechofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputDniChofer" class="form-label"
+                    >DNI o Pasaporte</label
+                  >
+                  <input
+                    type="text"
+                    id="inputDniChofer"
+                    name="dnichofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
               </div>
-              <div class="col-md-6">
-                <label for="inputDniChofer" class="form-label">DNI o Pasaporte</label>
-                <input type="text" id="inputDniChofer" name="dnichofer" class="form-control" required>
-              </div>
-            </div>
-  
-            <!-- Segunda fila: Licencia y Tipo de Licencia -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="inputLicenciaChofer" class="form-label">Licencia</label>
-                <input type="text" id="inputLicenciaChofer" name="licenciachofer" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label for="inputTipoLicenciaChofer" class="form-label">Tipo de Licencia</label>
-                <select id="inputTipoLicenciaChofer" name="tipolicenciachofer" class="form-select" required>
+
+              <!-- Segunda fila: Licencia y Tipo de Licencia -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputLicenciaChofer" class="form-label"
+                    >Licencia</label
+                  >
+                  <input
+                    type="text"
+                    id="inputLicenciaChofer"
+                    name="licenciachofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputTipoLicenciaChofer" class="form-label"
+                    >Tipo de Licencia</label
+                  >
+                  <select
+                    id="inputTipoLicenciaChofer"
+                    name="tipolicenciachofer"
+                    class="form-select"
+                    required
+                  >
                     <option value="">Seleccione tipo de licencia</option>
                     <option value="A1">A1</option>
                     <option value="A2">A2</option>
@@ -506,183 +560,411 @@
                     <option value="A4">A4</option>
                     <option value="A5">A5</option>
                   </select>
+                </div>
               </div>
-            </div>
-  
-            <!-- Tercera fila: Vencimiento Licencia y Fecha Ingreso -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="inputVencimientoLicenciaChofer" class="form-label">Vencimiento Licencia</label>
-                <input type="date" id="inputVencimientoLicenciaChofer" name="vencimientolicenciachofer" class="form-control" required>
+
+              <!-- Tercera fila: Vencimiento Licencia y Fecha Ingreso -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputVencimientoLicenciaChofer" class="form-label"
+                    >Vencimiento Licencia</label
+                  >
+                  <input
+                    type="date"
+                    id="inputVencimientoLicenciaChofer"
+                    name="vencimientolicenciachofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputFechaIngresoChofer" class="form-label"
+                    >Fecha de Ingreso</label
+                  >
+                  <input
+                    type="date"
+                    id="inputFechaIngresoChofer"
+                    name="fechaingresochofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
               </div>
-              <div class="col-md-6">
-                <label for="inputFechaIngresoChofer" class="form-label">Fecha de Ingreso</label>
-                <input type="date" id="inputFechaIngresoChofer" name="fechaingresochofer" class="form-control" required>
+
+              <!-- Cuarta fila: Teléfono y Email -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputTelefonoChofer" class="form-label"
+                    >Teléfono</label
+                  >
+                  <input
+                    type="text"
+                    id="inputTelefonoChofer"
+                    name="telefonochofer"
+                    class="form-control"
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="inputEmailChofer" class="form-label">Email</label>
+                  <input
+                    type="email"
+                    id="inputEmailChofer"
+                    name="emailchofer"
+                    class="form-control"
+                  />
+                </div>
               </div>
-            </div>
-  
-            <!-- Cuarta fila: Teléfono y Email -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="inputTelefonoChofer" class="form-label">Teléfono</label>
-                <input type="text" id="inputTelefonoChofer" name="telefonochofer" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label for="inputEmailChofer" class="form-label">Email</label>
-                <input type="email" id="inputEmailChofer" name="emailchofer" class="form-control">
-              </div>
-            </div>
-  
-            <!-- Quinta fila: Estado y Asignado a Flota -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="inputEstadoChofer" class="form-label">Estado</label>
-                <select id="inputEstadoChofer" name="estadochofer" class="form-select" required>
-                  <option value="Disponible">Disponible</option>
-                  <option value="En viaje">En viaje</option>
-                  <option value="Licencia">Licencia</option>
-                  <option value="Baja">Baja</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label for="inputAsignadoFlotaChofer" class="form-label">Asignado a Flota</label>
-                <select id="inputAsignadoFlotaChofer" name="asignadoflotachofer" class="form-select">
+
+              <!-- Quinta fila: Estado y Asignado a Flota -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="inputEstadoChofer" class="form-label"
+                    >Estado</label
+                  >
+                  <select
+                    id="inputEstadoChofer"
+                    name="estadochofer"
+                    class="form-select"
+                    required
+                  >
+                    <option value="Disponible">Disponible</option>
+                    <option value="En viaje">En viaje</option>
+                    <option value="Licencia">Licencia</option>
+                    <option value="Baja">Baja</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="inputAsignadoFlotaChofer" class="form-label"
+                    >Asignado a Flota</label
+                  >
+                  <select
+                    id="inputAsignadoFlotaChofer"
+                    name="asignadoflotachofer"
+                    class="form-select"
+                  >
                     <option value="">Seleccione flota</option>
                     <!-- Aquí se llenarán las patentes dinámicamente -->
                   </select>
+                </div>
               </div>
-            </div>
-  
-            <!-- Observaciones: ocupa toda la fila -->
-            <div class="mb-3">
-              <label for="inputObservacionesChofer" class="form-label">Observaciones</label>
-              <textarea id="inputObservacionesChofer" name="observacioneschofer" class="form-control" rows="2"></textarea>
-            </div>
-            <!-- Agregar foto Chofer -->
-            <div class="mb-3">
-                <label for="inputFotoChofer" class="form-label">Foto del Chofer</label>
-                <input type="file" class="form-control" id="inputFotoChofer" name="fotochofer" accept="image/*">
-              </div>
-  
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btnGuardarChofer">Guardar</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Modal Editar Chofer -->
-<div class="modal fade" id="modalEditarChofer" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalEditarChoferLabel">Editar Chofer</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formEditarChofer">
-            <input type="hidden" id="editarIdChofer" name="idchofer">
-  
-            <!-- Primera fila: Nombre completo y DNI -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="editarNombreChofer" class="form-label">Nombre completo</label>
-                <input type="text" id="editarNombreChofer" name="nombrechofer" class="form-control" required>
+              <!-- Observaciones: ocupa toda la fila -->
+              <div class="mb-3">
+                <label for="inputObservacionesChofer" class="form-label"
+                  >Observaciones</label
+                >
+                <textarea
+                  id="inputObservacionesChofer"
+                  name="observacioneschofer"
+                  class="form-control"
+                  rows="2"
+                ></textarea>
               </div>
-              <div class="col-md-6">
-                <label for="editarDniChofer" class="form-label">DNI o Pasaporte</label>
-                <input type="text" id="editarDniChofer" name="dnichofer" class="form-control" required>
+              <!-- Agregar foto Chofer -->
+              <div class="mb-3">
+                <label for="inputFotoChofer" class="form-label"
+                  >URL Foto Chofer</label
+                >
+                <input
+                  type="text"
+                  id="inputFotoChofer"
+                  name="fotochofer"
+                  class="form-control"
+                  placeholder="Pega aquí el enlace de la imagen"
+                />
               </div>
-            </div>
-  
-            <!-- Segunda fila: Licencia y Tipo de Licencia -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="editarLicenciaChofer" class="form-label">Licencia</label>
-                <input type="text" id="editarLicenciaChofer" name="licenciachofer" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label for="editarTipoLicenciaChofer" class="form-label">Tipo de Licencia</label>
-                <select id="editarTipoLicenciaChofer" name="tipolicenciachofer" class="form-select" required>
-                  <option value="">Seleccione tipo de licencia</option>
-                  <option value="A1">A1</option>
-                  <option value="A2">A2</option>
-                  <option value="A3">A3</option>
-                  <option value="A4">A4</option>
-                  <option value="A5">A5</option>
-                </select>
-              </div>
-            </div>
-  
-            <!-- Tercera fila: Vencimiento Licencia y Fecha Ingreso -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="editarVencimientoLicenciaChofer" class="form-label">Vencimiento Licencia</label>
-                <input type="date" id="editarVencimientoLicenciaChofer" name="vencimientolicenciachofer" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label for="editarFechaIngresoChofer" class="form-label">Fecha de Ingreso</label>
-                <input type="date" id="editarFechaIngresoChofer" name="fechaingresochofer" class="form-control" required>
-              </div>
-            </div>
-  
-            <!-- Cuarta fila: Teléfono y Email -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="editarTelefonoChofer" class="form-label">Teléfono</label>
-                <input type="text" id="editarTelefonoChofer" name="telefonochofer" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label for="editarEmailChofer" class="form-label">Email</label>
-                <input type="email" id="editarEmailChofer" name="emailchofer" class="form-control">
-              </div>
-            </div>
-  
-            <!-- Quinta fila: Estado y Asignado a Flota -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="editarEstadoChofer" class="form-label">Estado</label>
-                <select id="editarEstadoChofer" name="estadochofer" class="form-select" required>
-                  <option value="Disponible">Disponible</option>
-                  <option value="En viaje">En viaje</option>
-                  <option value="Licencia">Licencia</option>
-                  <option value="Baja">Baja</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label for="editarAsignadoFlotaChofer" class="form-label">Asignado a Flota</label>
-                <select id="editarAsignadoFlotaChofer" name="asignadoflotachofer" class="form-select">
-                  <!-- Opciones dinámicas -->
-                </select>
-              </div>
-            </div>
-  
-            <!-- Observaciones -->
-            <div class="mb-3">
-              <label for="editarObservacionesChofer" class="form-label">Observaciones</label>
-              <textarea id="editarObservacionesChofer" name="observacioneschofer" class="form-control" rows="2"></textarea>
-            </div>
-            <!-- Actualizar foto Chofer -->
-            <div class="mb-3">
-                <label for="editarFotoChofer" class="form-label">Actualizar Foto Chofer</label>
-                <input type="file" class="form-control" id="editarFotoChofer" name="fotochofer" accept="image/*">
-              </div>
-              
-  
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btnGuardarEditarChofer">Guardar Cambios</button>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" id="btnGuardarChofer">
+              Guardar
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  
+
+    <!-- Modal Editar Chofer -->
+    <div
+      class="modal fade"
+      id="modalEditarChofer"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalEditarChoferLabel">
+              Editar Chofer
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formEditarChofer">
+              <input type="hidden" id="editarIdChofer" name="idchofer" />
+
+              <!-- Primera fila: Nombre completo y DNI -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarNombreChofer" class="form-label"
+                    >Nombre completo</label
+                  >
+                  <input
+                    type="text"
+                    id="editarNombreChofer"
+                    name="nombrechofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="editarDniChofer" class="form-label"
+                    >DNI o Pasaporte</label
+                  >
+                  <input
+                    type="text"
+                    id="editarDniChofer"
+                    name="dnichofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              <!-- Segunda fila: Licencia y Tipo de Licencia -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarLicenciaChofer" class="form-label"
+                    >Licencia</label
+                  >
+                  <input
+                    type="text"
+                    id="editarLicenciaChofer"
+                    name="licenciachofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="editarTipoLicenciaChofer" class="form-label"
+                    >Tipo de Licencia</label
+                  >
+                  <select
+                    id="editarTipoLicenciaChofer"
+                    name="tipolicenciachofer"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione tipo de licencia</option>
+                    <option value="A1">A1</option>
+                    <option value="A2">A2</option>
+                    <option value="A3">A3</option>
+                    <option value="A4">A4</option>
+                    <option value="A5">A5</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tercera fila: Vencimiento Licencia y Fecha Ingreso -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label
+                    for="editarVencimientoLicenciaChofer"
+                    class="form-label"
+                    >Vencimiento Licencia</label
+                  >
+                  <input
+                    type="date"
+                    id="editarVencimientoLicenciaChofer"
+                    name="vencimientolicenciachofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="editarFechaIngresoChofer" class="form-label"
+                    >Fecha de Ingreso</label
+                  >
+                  <input
+                    type="date"
+                    id="editarFechaIngresoChofer"
+                    name="fechaingresochofer"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              <!-- Cuarta fila: Teléfono y Email -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarTelefonoChofer" class="form-label"
+                    >Teléfono</label
+                  >
+                  <input
+                    type="text"
+                    id="editarTelefonoChofer"
+                    name="telefonochofer"
+                    class="form-control"
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label for="editarEmailChofer" class="form-label"
+                    >Email</label
+                  >
+                  <input
+                    type="email"
+                    id="editarEmailChofer"
+                    name="emailchofer"
+                    class="form-control"
+                  />
+                </div>
+              </div>
+
+              <!-- Quinta fila: Estado y Asignado a Flota -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="editarEstadoChofer" class="form-label"
+                    >Estado</label
+                  >
+                  <select
+                    id="editarEstadoChofer"
+                    name="estadochofer"
+                    class="form-select"
+                    required
+                  >
+                    <option value="Disponible">Disponible</option>
+                    <option value="En viaje">En viaje</option>
+                    <option value="Licencia">Licencia</option>
+                    <option value="Baja">Baja</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="editarAsignadoFlotaChofer" class="form-label"
+                    >Asignado a Flota</label
+                  >
+                  <select
+                    id="editarAsignadoFlotaChofer"
+                    name="asignadoflotachofer"
+                    class="form-select"
+                  >
+                    <!-- Opciones dinámicas -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Observaciones -->
+              <div class="mb-3">
+                <label for="editarObservacionesChofer" class="form-label"
+                  >Observaciones</label
+                >
+                <textarea
+                  id="editarObservacionesChofer"
+                  name="observacioneschofer"
+                  class="form-control"
+                  rows="2"
+                ></textarea>
+              </div>
+              <!-- Actualizar foto Chofer -->
+              <div class="mb-3">
+                <label for="editarFotoChofer" class="form-label"
+                  >URL Nueva Foto Chofer</label
+                >
+                <input
+                  type="text"
+                  id="editarFotoChofer"
+                  name="fotochofer"
+                  class="form-control"
+                  placeholder="Pega aquí el enlace de la imagen"
+                />
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="btnGuardarEditarChofer"
+            >
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Ver Más Chofer (Card) -->
+    <div
+      class="modal fade"
+      id="modalVerMasChofer"
+      tabindex="-1"
+      aria-labelledby="modalVerMasChoferLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalVerMasChoferLabel">
+              Detalles del Chofer
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <img
+              id="fotoVerMasChofer"
+              src=""
+              class="rounded-circle mb-3"
+              alt="Foto Chofer"
+              width="140"
+              height="140"
+            />
+            <h5 id="nombreVerMasChofer"></h5>
+            <span id="estadoVerMasChofer" class="badge estado-badge"></span>
+            <p class="mt-3 text-start">
+              <strong>Licencia:</strong> <span id="licenciaVerMasChofer"></span
+              ><br />
+              <strong>Flota:</strong> <span id="flotaVerMasChofer"></span><br />
+              <strong>Fecha Ingreso:</strong>
+              <span id="fechaIngresoVerMasChofer"></span><br />
+              <strong>Observaciones:</strong>
+              <span id="observacionesVerMasChofer"></span>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button id="btnEditarChofer" type="button" class="btn btn-primary">
+              Editar
+            </button>
+            <button id="btnEliminarChofer" type="button" class="btn btn-danger">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <?!= obtenerDatosHtml('js'); ?>
   </body>

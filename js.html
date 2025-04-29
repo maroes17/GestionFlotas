@@ -57,6 +57,26 @@
     document.getElementById("loadingModal")
   );
 
+// 📅 Formatear fecha DD-MM-YYYY ➔ YYYY-MM-DD (para usar en inputs de fecha)
+function formatearFechaParaInput(fechaTexto) {
+  if (!fechaTexto || !fechaTexto.includes("-")) return "";
+  const partes = fechaTexto.split("-");
+  if (partes.length === 3) {
+    const [dia, mes, anio] = partes;
+    return `${anio}-${mes}-${dia}`;
+  }
+  return "";
+}
+
+  
+    // 📅 Función para formatear fecha YYYY-MM-DD ➔ DD-MM-YYYY
+function formatearFecha(fechaISO) {
+  if (!fechaISO || !fechaISO.includes("-")) return "";
+  const [anio, mes, dia] = fechaISO.split("-");
+  return `${dia.padStart(2, "0")}-${mes.padStart(2, "0")}-${anio}`;
+}
+
+
   // Función para mostrar loading
   function showLoading(message = "Procesando...") {
     document.getElementById("loadingModal").querySelector("p").textContent =
@@ -85,52 +105,68 @@
   // Función optimizada para cargar datos
   async function loadTableData(sheetName) {
     const cardsContainer = document.getElementById("cards-choferes");
+    const filtrosContainer = document.getElementById("filtros-choferes");
+    const tablaPrueba = document.getElementById("tablaPrueba");
+    const header = document.getElementById("table-header");
+    const actionsDiv = document.getElementById("action-buttons");
+
+    currentSheetName = sheetName;
+
+    // Mostrar encabezado y limpiar botones
+    header.style.display = "flex";
+    actionsDiv.innerHTML = "";
+
     if (sheetName === "Choferes") {
-      cardsContainer.style.display = "flex"; // Mostrar
+      // 🔵 Solo módulo Choferes
+      cardsContainer.style.display = "flex";
+      tablaPrueba.style.display = "none";
+
+      // 🔴 Destruir DataTable si existe
+      if (dataTableInstance) {
+        dataTableInstance.destroy();
+        dataTableInstance = null; // Liberamos
+        document.getElementById("tablaPrueba").innerHTML = ""; // Limpiamos HTML de tabla
+      }
+
+      filtrosContainer.style.display = "flex";
+      filtrosContainer.innerHTML = "";
+      crearFiltrosChoferes();
+      document.getElementById("currentSectionTitle").textContent = "Choferes";
       await mostrarCardsChoferes();
     } else {
-      cardsContainer.style.display = "none"; // Ocultar
-      cardsContainer.innerHTML = ""; // Limpiar contenido
-    }
+      // 🔵 Para cualquier otro módulo (Flota, Viajes, etc):
+      cardsContainer.style.display = "none";
+      if (filtrosContainer) {
+        filtrosContainer.style.display = "none";
+        filtrosContainer.innerHTML = "";
+      }
+      tablaPrueba.style.display = "table";
 
-    try {
-      currentSheetName = sheetName;
-      const header = document.getElementById("table-header");
-      const actionsDiv = document.getElementById("action-buttons");
-      const tablaPrueba = document.getElementById("tablaPrueba");
-
-      // Mostrar estado de carga
-      header.style.display = "flex";
+      cardsContainer.innerHTML = "";
+      // Limpiar Cards
       document.getElementById(
         "currentSectionTitle"
       ).textContent = `Cargando ${sheetName}...`;
-      actionsDiv.innerHTML = "";
-      tablaPrueba.innerHTML =
-        '<tr><td class="text-center py-5" colspan="100%">Cargando datos... <div class="spinner-border spinner-border-sm ms-2" role="status"><span class="visually-hidden">Cargando...</span></div></td></tr>';
 
-      // Cargar datos con manejo de errores
-      const object = await new Promise((resolve, reject) => {
-        google.script.run
-          .withFailureHandler(reject)
-          .withSuccessHandler(resolve)
-          .getData(sheetName);
-      });
+      tablaPrueba.innerHTML = `
+      <tr><td class="text-center py-5" colspan="100%">
+      Cargando datos... <div class="spinner-border spinner-border-sm ms-2" role="status">
+      <span class="visually-hidden">Cargando...</span></div></td></tr>`;
 
-      // Actualizar UI con los datos
-      document.getElementById("currentSectionTitle").textContent = sheetName;
-      createActionButtons();
-      if (sheetName === "Choferes") {
-        await mostrarCardsChoferes();
+      try {
+        const object = await runGoogleFunction("getData", sheetName);
+        document.getElementById("currentSectionTitle").textContent = sheetName;
+        createActionButtons();
+        updateTable(object.headers, object.datos);
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+        document.getElementById(
+          "currentSectionTitle"
+        ).textContent = `Error al cargar ${sheetName}`;
+        tablaPrueba.innerHTML = `
+        <tr><td class="text-center py-5" colspan="100%">
+        Error al cargar los datos. Por favor, intenta nuevamente.</td></tr>`;
       }
-      updateTable(object.headers, object.datos);
-    } catch (error) {
-      console.error("Error al cargar datos:", error);
-      document.getElementById(
-        "currentSectionTitle"
-      ).textContent = `Error al cargar ${sheetName}`;
-      document.getElementById("tablaPrueba").innerHTML =
-        '<tr><td class="text-center py-5" colspan="100%">Error al cargar los datos. Por favor, intenta nuevamente.</td></tr>';
-      createActionButtons();
     }
   }
 
@@ -190,13 +226,13 @@
   }
   // Función optimizada para actualizar la tabla
   function updateTable(headers, data) {
-    // Destruir tabla anterior si existe
+    // 🔵 Destruir tabla anterior si existe
     if (dataTableInstance) {
       dataTableInstance.destroy();
       document.getElementById("tablaPrueba").innerHTML = "";
     }
 
-    // Configuración base de DataTable
+    // 🔵 Configuración base de DataTable
     const baseConfig = {
       responsive: true,
       language: { url: "//cdn.datatables.net/plug-ins/2.2.2/i18n/es-CL.json" },
@@ -205,29 +241,88 @@
       },
     };
 
-    if (currentSheetName === "Flota" || currentSheetName === "Choferes") {
-      const columnDefs = getCustomColumnDefs(headers);
-      const formattedCols = headers.map((header) => ({ title: header }));
-      formattedCols.push({ title: "Acciones", orderable: false }); // 👈 Agregar columna Acciones
+    // 🔵 Estructura de columnas
+    const formattedCols = headers.map((header) => ({ title: header }));
+    formattedCols.push({ title: "Acciones", orderable: false });
 
+    // 🔵 Si estamos en Flota
+    if (currentSheetName === "Flota") {
       dataTableInstance = new DataTable("#tablaPrueba", {
         ...baseConfig,
-        data: data.map((row) => [...row, ""]), // 👈 Agregar columna vacía para Acciones
+        data: data.map((row) => [...row, ""]),
         columns: formattedCols,
-        columnDefs: columnDefs,
+        columnDefs: getFlotaColumnDefs(headers),
         createdRow: function (row, data) {
-          $(row).attr("data-id", data[0]); // ID Chofer
+          $(row).attr("data-id", data[0]);
         },
       });
 
-      // Manejo de eventos optimizado
-      setupFlotaTableEvents();
+      // 🔵 Botones de Editar y Borrar para Flota
+      $(document)
+        .off("click", ".btn-editar-flota")
+        .on("click", ".btn-editar-flota", async function () {
+          const idFlota = $(this).data("id");
+          try {
+            const registro = await runGoogleFunction(
+              "obtenerRegistroFlota",
+              idFlota
+            );
+            if (registro) {
+              llenarModalEditarFlota(registro);
+              const modal = new bootstrap.Modal(
+                document.getElementById("modalEditarFlota")
+              );
+              modal.show();
+            } else {
+              Swal.fire("Error", "Registro no encontrado", "error");
+            }
+          } catch (error) {
+            console.error("Error al editar:", error);
+            Swal.fire(
+              "Error",
+              error.message || "Error al cargar datos",
+              "error"
+            );
+          }
+        });
+
+      $(document)
+        .off("click", ".btn-borrar-flota")
+        .on("click", ".btn-borrar-flota", function () {
+          const idFlota = $(this).data("id");
+
+          Swal.fire({
+            title: "¿Estás seguro?",
+            text: `Se eliminará el registro con ID: ${idFlota}`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#dc3545",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Sí, borrar",
+            cancelButtonText: "Cancelar",
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              try {
+                await runGoogleFunction("borrarRegistroFlota", idFlota);
+                Swal.fire(
+                  "¡Borrado!",
+                  "Registro eliminado correctamente.",
+                  "success"
+                );
+                await loadTableData("Flota");
+              } catch (error) {
+                console.error("Error al borrar:", error);
+                Swal.fire("Error", "No se pudo borrar el registro.", "error");
+              }
+            }
+          });
+        });
     } else {
-      // Configuración para otras tablas
+      // 🔵 Otros módulos (Choferes no usa DataTable)
       dataTableInstance = new DataTable("#tablaPrueba", {
         ...baseConfig,
-        data: data,
-        columns: headers.map((header) => ({ title: header })),
+        data: data.map((row) => [...row, ""]),
+        columns: formattedCols,
       });
     }
   }
@@ -235,97 +330,61 @@
   // Obtener definiciones de columnas para Flota
   function getFlotaColumnDefs(headers) {
     const columnDefs = [];
-    const hiddenColumns = ["Creación de Registro", "Fecha de Ingreso"];
 
-    hiddenColumns.forEach((colName) => {
-      const index = headers.indexOf(colName);
-      if (index !== -1) columnDefs.push({ targets: index, visible: false });
-    });
+    // 🔵 Ocultar columna "Creación de Registro" si existe
+    const creacionRegistroIndex = headers.indexOf("Creación de Registro");
+    if (creacionRegistroIndex !== -1) {
+      columnDefs.push({
+        targets: creacionRegistroIndex,
+        visible: false,
+      });
+    }
 
-    // Columna de acciones
+    // 🔵 Etiqueta de Estado
+    const estadoIndex = headers.indexOf("Estado");
+    if (estadoIndex !== -1) {
+      columnDefs.push({
+        targets: estadoIndex,
+        render: function (data) {
+          let badgeClass = "";
+          const estado = (data || "").toLowerCase();
+          switch (estado) {
+            case "disponible":
+              badgeClass = "estado-disponible badge-estado-flota";
+              break;
+            case "mantención":
+              badgeClass = "estado-mantencion badge-estado-flota";
+              break;
+            case "siniestro":
+              badgeClass = "estado-siniestro badge-estado-flota";
+              break;
+            case "robado":
+              badgeClass = "estado-robado badge-estado-flota";
+              break;
+            default:
+              badgeClass = "badge-estado-flota";
+          }
+          return `<span class="badge ${badgeClass}">${data}</span>`;
+        },
+      });
+    }
+
+    // 🔵 Botones de acción
     columnDefs.push({
       targets: -1,
       render: (data, type, row) => `
-        <button class="btn btn-sm btn-warning me-1 btn-editar-flota" data-id="${row[0]}" title="Editar">
-          <i class="bi bi-pencil-square"></i>
-        </button>
-        <button class="btn btn-sm btn-danger btn-borrar-flota" data-id="${row[0]}" title="Borrar">
-          <i class="bi bi-trash"></i>
-        </button>
-      `,
+    <div class="d-flex justify-content-center align-items-center gap-1">
+      <button class="btn btn-sm btn-warning btn-editar-flota" data-id="${row[0]}" title="Editar">
+        <i class="bi bi-pencil-square"></i>
+      </button>
+      <button class="btn btn-sm btn-danger btn-borrar-flota" data-id="${row[0]}" title="Borrar">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+  `,
     });
 
     return columnDefs;
-  }
-
-  // Configurar eventos de la tabla Flota
-  function setupFlotaTableEvents() {
-    $(document)
-      .off("click", ".btn-editar-flota")
-      .on("click", ".btn-editar-flota", async function () {
-        const idFlota = $(this).data("id");
-        $(this).find("i").addClass("spin-icon");
-
-        try {
-          const registro = await new Promise((resolve, reject) => {
-            google.script.run
-              .withFailureHandler(reject)
-              .withSuccessHandler(resolve)
-              .obtenerRegistroFlota(idFlota);
-          });
-
-          if (registro) {
-            llenarModalEditarFlota(registro);
-            new bootstrap.Modal(
-              document.getElementById("modalEditarFlota")
-            ).show();
-          } else {
-            Swal.fire("Error", "Registro no encontrado", "error");
-          }
-        } catch (error) {
-          console.error("Error al editar:", error);
-          Swal.fire("Error", error.message || "Error al cargar datos", "error");
-        } finally {
-          $(this).find("i").removeClass("spin-icon");
-        }
-      });
-
-    $(document)
-      .off("click", ".btn-borrar-flota")
-      .on("click", ".btn-borrar-flota", function () {
-        const idFlota = $(this).data("id");
-
-        Swal.fire({
-          title: "¿Estás seguro?",
-          text: `Se borrará el registro con ID: ${idFlota}`,
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#dc3545",
-          cancelButtonColor: "#6c757d",
-          confirmButtonText: "Sí, borrar",
-          cancelButtonText: "Cancelar",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            showLoading("Borrando registro...");
-            google.script.run
-              .withSuccessHandler(() => {
-                hideLoading(); // Ocultar spinner al éxito
-                Swal.fire(
-                  "Borrado!",
-                  "Registro eliminado correctamente",
-                  "success"
-                );
-                loadTableData(currentSheetName);
-              })
-              .withFailureHandler((error) => {
-                console.error("Error al borrar:", error);
-                hideLoading(); // Ocultar spinner al error
-                Swal.fire("Error", "No se pudo borrar el registro", "error");
-              })
-              .borrarRegistroFlota(idFlota);
-          }
-        });
-      });
   }
 
   // [Mantén tus funciones actualizarModeloFlota, llenarModalEditarFlota, etc. aquí...]
@@ -489,214 +548,170 @@
   // Función para guardar un nuevo registro de Flota
 
   document.getElementById("btnGuardarFlota").onclick = async function () {
-    const btn = this;
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.innerHTML =
-      '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+  const btn = this;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
 
-    try {
-      if (!validarFormularioFlota("formAgregarFlota")) {
-        return;
-      }
+  try {
+    if (!validarFormularioFlota("formAgregarFlota")) return;
 
-      // 🔵 Aquí capturamos todos los datos automáticamente
-      const formData = getFormData("formAgregarFlota");
+    const formData = getFormData("formAgregarFlota");
 
-      const patenteExiste = await runGoogleFunction(
-        "verificarPatenteFlota",
-        formData.patente
-      );
-
-      if (patenteExiste) {
-        await Swal.fire({
-          icon: "warning",
-          title: "Patente Duplicada",
-          text: "La patente ya existe en el sistema.",
-          confirmButtonColor: "#ffc107",
-        });
-        return;
-      }
-
-      const idFlota = await runGoogleFunction("generarIdFlota");
-
-      const registro = [
-        idFlota,
-        formData.tipo,
-        formData.patente,
-        formData.nrochasis,
-        formData.marca,
-        formData.modelo,
-        formData.año,
-        formData.capacidad,
-        formData.estado,
-        formData.fechaingreso,
-        formData.observaciones,
-        "Creación de Registro",
-      ];
-
-      await runGoogleFunction("agregarRegistroFlota", registro);
-
-      $("#modalAgregarFlota").modal("hide");
-
+    const patenteExiste = await runGoogleFunction("verificarPatenteFlota", formData.patenteflota);
+    if (patenteExiste) {
       await Swal.fire({
-        icon: "success",
-        title: "Guardado",
-        text: "El registro se ha guardado correctamente",
-        timer: 1500,
-        showConfirmButton: false,
+        icon: "warning",
+        title: "Patente Duplicada",
+        text: "La patente ya existe en el sistema.",
+        confirmButtonColor: "#ffc107",
       });
-
-      await loadTableData(currentSheetName);
-    } catch (error) {
-      console.error("Error al guardar:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "Error al guardar registro",
-      });
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
+      return;
     }
-  };
+
+    const idFlota = await runGoogleFunction("generarIdFlota");
+
+    const registro = [
+      idFlota,
+      formData.tipoflota || "",
+      formData.patenteflota || "",
+      formData.nrochasisflota || "",
+      formData.marcaflota || "",
+      formData.modeloflota || "",
+      formData.añoflota || "",
+      formData.capacidadflota || "",
+      formData.estadoflota || "",
+      formatearFecha(formData.fechaingresoflota), // ✅ Formato corregido
+      formData.observacionesflota || "",
+      "Creación de Registro",
+    ];
+
+    await runGoogleFunction("agregarRegistroFlota", registro);
+
+    $("#modalAgregarFlota").modal("hide");
+
+    await Swal.fire({
+      icon: "success",
+      title: "Guardado",
+      text: "El registro se ha guardado correctamente",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    await loadTableData(currentSheetName);
+  } catch (error) {
+    console.error("❌ Error al guardar:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: error.message || "Error al guardar registro",
+    });
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+};
+
+
+
 
   // ... (resto de tu código js.html) ...
 
   function llenarModalEditarFlota(registro) {
-    try {
-      // Cargar valores básicos
-      document.getElementById("editarIdFlota").value = registro[0];
-      document.getElementById("editarTipoFlota").value = registro[1];
-      document.getElementById("editarPatenteFlota").value = registro[2];
-      document.getElementById("editarNroChasisFlota").value = registro[3];
-      document.getElementById("editarMarcaFlota").value = registro[4];
+  try {
+    document.getElementById("editarIdFlota").value = registro[0];
+    document.getElementById("editarTipoFlota").value = registro[1];
+    document.getElementById("editarPatenteFlota").value = registro[2];
+    document.getElementById("editarNroChasisFlota").value = registro[3];
+    document.getElementById("editarMarcaFlota").value = registro[4];
 
-      // Actualizar modelos según marca
-      actualizarModelo("editarMarcaFlota", "editarModeloFlota");
+    actualizarModelo("editarMarcaFlota", "editarModeloFlota");
+    document.getElementById("editarModeloFlota").value = registro[5];
+    document.getElementById("editarAñoFlota").value = registro[6];
+    document.getElementById("editarCapacidadFlota").value = registro[7];
+    document.getElementById("editarEstadoFlota").value = registro[8];
 
-      document.getElementById("editarModeloFlota").value = registro[5];
-      document.getElementById("editarAñoFlota").value = registro[6];
-      document.getElementById("editarCapacidadFlota").value = registro[7];
-
-      // 🔥 Cargar Estado correctamente
-      document.getElementById("editarEstadoFlota").value = registro[8];
-
-      // Formatear y cargar Fecha de Ingreso
-      let fechaIngreso = registro[9];
-
-      if (fechaIngreso instanceof Date) {
+    // 🛠 NUEVO - Cargar fecha correctamente
+    let fechaIngreso = registro[9];
+    if (fechaIngreso) {
+      if (fechaIngreso.includes("-")) {
+        // Ya viene formateada tipo DD-MM-YYYY
+        fechaIngreso = formatearFechaParaInput(fechaIngreso);
+      } else if (fechaIngreso instanceof Date) {
         fechaIngreso = fechaIngreso.toISOString().split("T")[0];
-      } else if (typeof fechaIngreso === "string") {
-        // Arreglar fecha tipo "10/4/2025 20:00:00"
-        const partes = fechaIngreso.split(" ")[0].split("/");
-        if (partes.length === 3) {
-          const [dia, mes, año] = partes;
-          fechaIngreso = `${año.padStart(4, "0")}-${mes.padStart(
-            2,
-            "0"
-          )}-${dia.padStart(2, "0")}`;
-        } else {
-          fechaIngreso = "";
-        }
       }
-
-      document.getElementById("editarFechaIngresoFlota").value = fechaIngreso;
-
-      // Observaciones
-      document.getElementById("editarObservacionesFlota").value = registro[10];
-    } catch (error) {
-      console.error("Error al llenar modal de edición:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudieron cargar los datos para editar.",
-      });
     }
+    document.getElementById("editarFechaIngresoFlota").value = fechaIngreso || "";
+
+    document.getElementById("editarObservacionesFlota").value = registro[10];
+  } catch (error) {
+    console.error("Error al llenar modal de edición:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudieron cargar los datos para editar.",
+    });
   }
+}
+
+
 
   // Event listener para el botón "Guardar Cambios" del modal de Editar Flota
 
   document.getElementById("btnGuardarEditarFlota").onclick = async function () {
-    const btn = this;
-    const originalText = btn.textContent;
+  const btn = this;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
 
-    try {
-      btn.disabled = true;
-      btn.innerHTML =
-        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+  try {
+    if (!validarFormularioFlota("formEditarFlota")) return;
 
-      if (!validarFormularioFlota("formEditarFlota")) return;
+    const formData = getFormData("formEditarFlota");
 
-      // 🔵 CORREGIDO: convertir idFlota a número
-      const idFlota = Number(document.getElementById("editarIdFlota").value);
-      const tipo = document.getElementById("editarTipoFlota").value;
-      const patente = document
-        .getElementById("editarPatenteFlota")
-        .value.trim()
-        .toUpperCase();
-      const nroChasis = document
-        .getElementById("editarNroChasisFlota")
-        .value.trim();
-      const marca = document.getElementById("editarMarcaFlota").value;
-      const modelo = document.getElementById("editarModeloFlota").value;
-      const año = document.getElementById("editarAñoFlota").value;
-      const capacidad = document.getElementById("editarCapacidadFlota").value;
-      const estado = document.getElementById("editarEstadoFlota").value;
-      const fechaIngreso = document.getElementById(
-        "editarFechaIngresoFlota"
-      ).value;
-      const observaciones = document.getElementById(
-        "editarObservacionesFlota"
-      ).value;
+    const registroModificado = [
+      Number(formData.idflota),
+      formData.tipoflota || "",
+      formData.patenteflota || "",
+      formData.nrochasisflota || "",
+      formData.marcaflota || "",
+      formData.modeloflota || "",
+      formData.añoflota || "",
+      formData.capacidadflota || "",
+      formData.estadoflota || "",
+      formatearFecha(formData.fechaingresoflota), // ✅ Formato corregido
+      formData.observacionesflota || "",
+      "Actualización de Registro",
+    ];
 
-      const registroModificado = [
-        idFlota,
-        tipo,
-        patente,
-        nroChasis,
-        marca,
-        modelo,
-        año,
-        capacidad,
-        estado,
-        fechaIngreso,
-        observaciones,
-        "Actualización de Registro",
-      ];
+    const resultado = await runGoogleFunction("actualizarRegistroFlota", registroModificado);
 
-      const resultado = await runGoogleFunction(
-        "actualizarRegistroFlota",
-        registroModificado
-      );
-
-      if (resultado === "success") {
-        $("#modalEditarFlota").modal("hide");
-
-        await Swal.fire({
-          icon: "success",
-          title: "Actualizado",
-          text: "El registro fue actualizado correctamente",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-
-        await loadTableData(currentSheetName);
-      } else {
-        throw new Error("La actualización no fue exitosa.");
-      }
-    } catch (error) {
-      console.error("Error al guardar cambios:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error al actualizar",
-        text: error.message || "Ocurrió un error al actualizar el registro.",
+    if (resultado === "success") {
+      $("#modalEditarFlota").modal("hide");
+      await Swal.fire({
+        icon: "success",
+        title: "Actualizado",
+        text: "El registro fue actualizado correctamente",
+        timer: 1500,
+        showConfirmButton: false,
       });
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
+      await loadTableData(currentSheetName);
+    } else {
+      throw new Error("No se pudo actualizar en el backend.");
     }
-  };
+  } catch (error) {
+    console.error("❌ Error al actualizar:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: error.message || "Error al actualizar registro",
+    });
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+};
+
 
   /**
    * Ejecuta funciones de Apps Script como promesas (async/await)
@@ -797,87 +812,32 @@
       const formData = getFormData("formAgregarChofer");
       const idChofer = await runGoogleFunction("generarIdChofer");
 
-      // Capturar imagen (si existe)
-      const fileInput = document.getElementById("inputFotoChofer"); // o 'editarFotoChofer'
-      const file = fileInput.files[0];
+      const registro = [
+        idChofer,
+        formData.nombrechofer,
+        formData.dnichofer,
+        formData.licenciachofer,
+        formData.tipolicenciachofer,
+        formData.vencimientolicenciachofer,
+        formData.telefonochofer,
+        formData.emailchofer,
+        formData.fechaingresochofer,
+        formData.estadochofer,
+        formData.asignadoflotachofer,
+        formData.observacioneschofer,
+        formData.fotochofer || "", // ✅ Pegar la URL de imagen (o vacío)
+      ];
 
-      if (file) {
-        let fileName = file.name;
-        if (!fileName) {
-          // 🔥 Si no existe nombre, lo generamos
-          fileName = `foto_chofer_${Date.now()}.png`;
-        }
+      await runGoogleFunction("agregarRegistroChofer", registro);
 
-        const reader = new FileReader();
-        reader.onload = async function (e) {
-          const base64Data = e.target.result.split(",")[1];
-          const fotoUrl = await runGoogleFunction(
-            "subirFotoChofer",
-            base64Data,
-            fileName
-          );
+      const modalElement = document.getElementById("modalAgregarChofer");
+      const modalInstance =
+        bootstrap.Modal.getInstance(modalElement) ||
+        new bootstrap.Modal(modalElement);
+      modalInstance.hide();
 
-          // Ahora armar el registro completo, incluyendo la foto
-          const registro = [
-            idChofer,
-            formData.nombrechofer,
-            formData.dnichofer,
-            formData.licenciachofer,
-            formData.tipolicenciachofer,
-            formData.vencimientolicenciachofer,
-            formData.telefonochofer,
-            formData.emailchofer,
-            formData.fechaingresochofer,
-            formData.estadochofer,
-            formData.asignadoflotachofer,
-            formData.observacioneschofer,
-            fotoUrl, // Agregamos URL de foto como última columna
-          ];
-
-          await runGoogleFunction("agregarRegistroChofer", registro);
-
-          // Cerrar modal y recargar
-          const modalElement = document.getElementById("modalAgregarChofer");
-          const modalInstance =
-            bootstrap.Modal.getInstance(modalElement) ||
-            new bootstrap.Modal(modalElement);
-          modalInstance.hide();
-
-          Swal.fire("Guardado", "Chofer agregado exitosamente", "success");
-          await loadTableData("Choferes");
-          console.log("Nuevo chofer registrado:", registro);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        // Si no hay imagen, guardar registro sin foto
-        const registro = [
-          idChofer,
-          formData.nombrechofer,
-          formData.dnichofer,
-          formData.licenciachofer,
-          formData.tipolicenciachofer,
-          formData.vencimientolicenciachofer,
-          formData.telefonochofer,
-          formData.emailchofer,
-          formData.fechaingresochofer,
-          formData.estadochofer,
-          formData.asignadoflotachofer,
-          formData.observacioneschofer,
-          "", // Campo de foto vacío
-        ];
-
-        await runGoogleFunction("agregarRegistroChofer", registro);
-
-        const modalElement = document.getElementById("modalAgregarChofer");
-        const modalInstance =
-          bootstrap.Modal.getInstance(modalElement) ||
-          new bootstrap.Modal(modalElement);
-        modalInstance.hide();
-
-        Swal.fire("Guardado", "Chofer agregado exitosamente", "success");
-        await loadTableData("Choferes");
-        console.log("Nuevo chofer registrado:", registro);
-      }
+      Swal.fire("Guardado", "Chofer agregado exitosamente", "success");
+      await loadTableData("Choferes");
     } catch (error) {
       console.error("Error al guardar chofer:", error);
       Swal.fire("Error", "No se pudo guardar el chofer.", "error");
@@ -993,103 +953,43 @@
 
         const formData = getFormData("formEditarChofer");
 
-        // Capturar imagen (si existe)
-        const fileInput = document.getElementById("editarFotoChofer");
-        const file = fileInput.files[0];
-        if (file) {
-          let fileName = file.name;
-          if (!fileName) {
-            // 🔥 Si no existe nombre, lo generamos
-            fileName = `foto_chofer_${Date.now()}.png`;
-          }
+        const registroModificado = [
+          Number(formData.idchofer),
+          formData.nombrechofer,
+          formData.dnichofer,
+          formData.licenciachofer,
+          formData.tipolicenciachofer,
+          formData.vencimientolicenciachofer,
+          formData.telefonochofer,
+          formData.emailchofer,
+          formData.fechaingresochofer,
+          formData.estadochofer,
+          formData.asignadoflotachofer,
+          formData.observacioneschofer,
+          formData.fotochofer || "", // ✅ Mantener o actualizar la URL de foto
+        ];
 
-          const reader = new FileReader();
-          reader.onload = async function (e) {
-            const base64Data = e.target.result.split(",")[1];
-            const fotoUrl = await runGoogleFunction(
-              "subirFotoChofer",
-              base64Data,
-              fileName
-            );
+        const resultado = await runGoogleFunction(
+          "actualizarRegistroChofer",
+          registroModificado
+        );
 
-            // Construir registro modificado incluyendo nueva foto
-            const registroModificado = [
-              Number(formData.idchofer),
-              formData.nombrechofer,
-              formData.dnichofer,
-              formData.licenciachofer,
-              formData.tipolicenciachofer,
-              formData.vencimientolicenciachofer,
-              formData.telefonochofer,
-              formData.emailchofer,
-              formData.fechaingresochofer,
-              formData.estadochofer,
-              formData.asignadoflotachofer,
-              formData.observacioneschofer,
-              fotoUrl, // URL nueva de foto
-            ];
-
-            const resultado = await runGoogleFunction(
-              "actualizarRegistroChofer",
-              registroModificado
-            );
-
-            if (resultado === "success") {
-              const modal = bootstrap.Modal.getInstance(
-                document.getElementById("modalEditarChofer")
-              );
-              modal.hide();
-              Swal.fire(
-                "Guardado",
-                "Cambios actualizados correctamente.",
-                "success"
-              );
-              await loadTableData("Choferes");
-            } else {
-              throw new Error("No se pudo actualizar el registro");
-            }
-          };
-          reader.readAsDataURL(file);
-        } else {
-          // No hay nueva imagen subida: no cambiar foto
-          const registroModificado = [
-            Number(formData.idchofer),
-            formData.nombrechofer,
-            formData.dnichofer,
-            formData.licenciachofer,
-            formData.tipolicenciachofer,
-            formData.vencimientolicenciachofer,
-            formData.telefonochofer,
-            formData.emailchofer,
-            formData.fechaingresochofer,
-            formData.estadochofer,
-            formData.asignadoflotachofer,
-            formData.observacioneschofer,
-            formData.fotochofer, // Mantener el mismo URL anterior
-          ];
-
-          const resultado = await runGoogleFunction(
-            "actualizarRegistroChofer",
-            registroModificado
+        if (resultado === "success") {
+          const modal = bootstrap.Modal.getInstance(
+            document.getElementById("modalEditarChofer")
           );
-
-          if (resultado === "success") {
-            const modal = bootstrap.Modal.getInstance(
-              document.getElementById("modalEditarChofer")
-            );
-            modal.hide();
-            Swal.fire(
-              "Guardado",
-              "Cambios actualizados correctamente.",
-              "success"
-            );
-            await loadTableData("Choferes");
-          } else {
-            throw new Error("No se pudo actualizar el registro");
-          }
+          modal.hide();
+          Swal.fire(
+            "Guardado",
+            "Cambios actualizados correctamente.",
+            "success"
+          );
+          await loadTableData("Choferes");
+        } else {
+          throw new Error("No se pudo actualizar el registro");
         }
       } catch (error) {
-        console.error("Error al actualizar:", error);
+        console.error("Error al actualizar chofer:", error);
         Swal.fire(
           "Error",
           error.message || "No se pudo actualizar correctamente",
@@ -1128,14 +1028,38 @@
   // MOSTRAR CARDS CHOFERES
   function getCustomColumnDefs(headers) {
     const columnDefs = [];
-    const hiddenColumns = [];
 
-    hiddenColumns.forEach((colName) => {
-      const index = headers.indexOf(colName);
-      if (index !== -1) columnDefs.push({ targets: index, visible: false });
-    });
+    const estadoIndex = headers.indexOf("Estado");
 
-    // 🔥 Columna de acciones al final
+    if (estadoIndex !== -1) {
+      columnDefs.push({
+        targets: estadoIndex,
+        render: function (data, type, row) {
+          let badgeClass = "";
+          const estado = (data || "").toLowerCase();
+          switch (estado) {
+            case "disponible":
+              badgeClass = "estado-disponible";
+              break;
+            case "mantención":
+              badgeClass = "estado-en-ruta"; // Puedes cambiarlo por otro si quieres
+              break;
+            case "siniestro":
+              badgeClass = "estado-licencia"; // Adaptación visual
+              break;
+            case "robado":
+              badgeClass = "estado-baja";
+              break;
+            default:
+              badgeClass = "estado-disponible";
+          }
+
+          return `<span class="badge ${badgeClass}">${data}</span>`;
+        },
+      });
+    }
+
+    // Columna de acciones
     columnDefs.push({
       targets: -1,
       render: (data, type, row) => {
@@ -1165,37 +1089,92 @@
     return columnDefs;
   }
 
-  async function mostrarCardsChoferes() {
+  //Mostrar Cards de choferes
+  let datosChoferes = []; // 🔥 Variable global para almacenar los choferes cargados
+
+  async function mostrarCardsChoferes(filtroEstado = "todos") {
     const container = document.getElementById("cards-choferes");
-    container.innerHTML = ""; // Limpiar antes
+    container.innerHTML = "";
 
-    const { datos } = await runGoogleFunction("getData", "Choferes");
+    if (datosChoferes.length === 0) {
+      const { datos } = await runGoogleFunction("getData", "Choferes");
+      datosChoferes = datos;
+    }
+    actualizarContadores();
 
-    datos.forEach((chofer) => {
+    datosChoferes.forEach((chofer) => {
       const estado = (chofer[9] || "").toLowerCase();
       const asignadoFlota = chofer[10];
+      const foto =
+        chofer[12] || "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
 
-      if (
-        estado === "en viaje" ||
-        (asignadoFlota && asignadoFlota.trim() !== "")
-      ) {
+      if (filtroEstado === "todos" || estado === filtroEstado) {
+        let badgeClass = "";
+        let bordeClass = "";
+        switch (estado) {
+          case "disponible":
+            badgeClass = "estado-disponible";
+            bordeClass = "borde-disponible";
+            break;
+          case "en ruta":
+            badgeClass = "estado-en-ruta";
+            bordeClass = "borde-en-ruta";
+            break;
+          case "licencia":
+            badgeClass = "estado-licencia";
+            bordeClass = "borde-licencia";
+            break;
+          case "baja":
+            badgeClass = "estado-baja";
+            bordeClass = "borde-baja";
+            break;
+          default:
+            badgeClass = "estado-disponible";
+            bordeClass = "";
+        }
+
+        let diasPorVencer = "-";
+        if (chofer[5]) {
+          const vencimiento = new Date(chofer[5]);
+          const hoy = new Date();
+          const diferencia = Math.ceil(
+            (vencimiento - hoy) / (1000 * 60 * 60 * 24)
+          );
+          diasPorVencer = diferencia >= 0 ? diferencia + " días" : "Vencida";
+        }
+
+        let edad = "-";
+        if (chofer[8]) {
+          const ingreso = new Date(chofer[8]);
+          const hoy = new Date();
+          edad = hoy.getFullYear() - ingreso.getFullYear();
+        }
+
         const card = document.createElement("div");
-        card.className = "col-md-3";
+        card.className = "col-md-3 mb-4";
 
         card.innerHTML = `
-        <div class="card h-100 shadow-sm">
-          <img src="${
-            chofer[12] ||
-            "https://cdn-icons-png.flaticon.com/512/1077/1077114.png"
-          }" class="card-img-top" alt="Foto Chofer">
+        <div class="card h-100 shadow-sm card-chofer">
+          <div class="card-body text-center d-flex flex-column">
+            <img src='${foto}' class="card-img-top ${bordeClass}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1077/1077114.png';" alt="Foto Chofer">
+            <h5 class="card-title mt-2">${chofer[1] || "Sin Nombre"}</h5>
+            <span class="estado-badge ${badgeClass}">${
+          chofer[9] || "Sin Estado"
+        }</span>
 
-          <div class="card-body">
-            <h5 class="card-title">${chofer[1] || "Sin Nombre"}</h5>
-            <p class="card-text">
-              <strong>Licencia:</strong> ${chofer[3] || "-"}<br>
-              <strong>Estado:</strong> ${chofer[9] || "-"}<br>
-              <strong>Flota:</strong> ${chofer[10] || "-"}
+            <p class="mt-2 mb-2 small text-muted">
+              <strong>Vence Licencia:</strong> ${
+                chofer[5] ? chofer[5].split("T")[0] : "-"
+              }<br>
+              <strong>Días por vencer:</strong> ${diasPorVencer}<br>
+              <strong>Edad:</strong> ${edad}
             </p>
+
+            <div class="mt-auto">
+              <button class="btn btn-outline-primary btn-sm btn-ver-mas-chofer" data-id="${
+                chofer[0]
+              }">Ver más</button>
+            </div>
           </div>
         </div>
       `;
@@ -1203,5 +1182,259 @@
         container.appendChild(card);
       }
     });
+
+    // Configurar eventos "Ver más"
+    document.querySelectorAll(".btn-ver-mas-chofer").forEach((btn) => {
+      btn.addEventListener("click", async function () {
+        const idChofer = this.getAttribute("data-id");
+        await mostrarDetallesChofer(idChofer);
+      });
+    });
   }
+
+  // Función para manejar el filtro
+  function filtrarChoferes(estado) {
+    mostrarCardsChoferes(estado);
+  }
+
+  //Mostrar Detalles Botón Mas Chofer
+  async function mostrarDetallesChofer(idChofer) {
+    try {
+      const registro = await runGoogleFunction(
+        "obtenerRegistroChofer",
+        idChofer
+      );
+
+      if (!registro) {
+        Swal.fire("Error", "Chofer no encontrado", "error");
+        return;
+      }
+
+      // Llenar el modal
+      document.getElementById("fotoVerMasChofer").src =
+        registro[12] ||
+        "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
+      document.getElementById("nombreVerMasChofer").textContent =
+        registro[1] || "Sin Nombre";
+      document.getElementById("estadoVerMasChofer").textContent =
+        registro[9] || "Sin Estado";
+
+      const estadoLower = (registro[9] || "").toLowerCase();
+      document.getElementById("estadoVerMasChofer").className =
+        "badge estado-badge " +
+        (estadoLower === "disponible"
+          ? "estado-disponible"
+          : estadoLower === "en ruta"
+          ? "estado-en-ruta"
+          : estadoLower === "licencia"
+          ? "estado-licencia"
+          : "estado-baja");
+
+      document.getElementById("licenciaVerMasChofer").textContent =
+        registro[3] || "-";
+      document.getElementById("flotaVerMasChofer").textContent =
+        registro[10] || "-";
+      document.getElementById("fechaIngresoVerMasChofer").textContent =
+        registro[8] || "-";
+      document.getElementById("observacionesVerMasChofer").textContent =
+        registro[11] || "-";
+
+      // Configurar botones Editar / Eliminar
+      document.getElementById("btnEditarChofer").onclick = () =>
+        editarChoferDesdeModal(idChofer);
+      document.getElementById("btnEliminarChofer").onclick = () =>
+        eliminarChoferDesdeModal(idChofer);
+
+      // Mostrar modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("modalVerMasChofer")
+      );
+      modal.show();
+    } catch (error) {
+      console.error("Error al cargar chofer:", error);
+      Swal.fire("Error", "No se pudo cargar los datos del chofer", "error");
+    }
+  }
+
+  //Editar Chofer desde Modal
+  async function editarChoferDesdeModal(idChofer) {
+    try {
+      const registro = await runGoogleFunction(
+        "obtenerRegistroChofer",
+        idChofer
+      );
+
+      if (!registro) {
+        Swal.fire("Error", "No se encontró el chofer.", "error");
+        return;
+      }
+
+      // Llenar el formulario de Editar
+      document.getElementById("editarIdChofer").value = registro[0];
+      document.getElementById("editarNombreChofer").value = registro[1];
+      document.getElementById("editarDniChofer").value = registro[2];
+      document.getElementById("editarLicenciaChofer").value = registro[3];
+      document.getElementById("editarTipoLicenciaChofer").value = registro[4];
+      document.getElementById("editarVencimientoLicenciaChofer").value = (
+        registro[5] || ""
+      ).split("T")[0];
+      document.getElementById("editarTelefonoChofer").value = registro[6];
+      document.getElementById("editarEmailChofer").value = registro[7];
+      document.getElementById("editarFechaIngresoChofer").value = (
+        registro[8] || ""
+      ).split("T")[0];
+      document.getElementById("editarEstadoChofer").value = registro[9];
+
+      await cargarOpcionesFlotaEditar(registro[0]);
+      document.getElementById("editarAsignadoFlotaChofer").value = registro[10];
+      document.getElementById("editarObservacionesChofer").value = registro[11];
+      document.getElementById("editarFotoChofer").value = registro[12] || "";
+
+      // Cerrar Modal Ver Más
+      const modalVerMas = bootstrap.Modal.getInstance(
+        document.getElementById("modalVerMasChofer")
+      );
+      modalVerMas.hide();
+
+      // Abrir Modal Editar
+      const modalEditar = new bootstrap.Modal(
+        document.getElementById("modalEditarChofer")
+      );
+      modalEditar.show();
+    } catch (error) {
+      console.error("Error al cargar chofer:", error);
+      Swal.fire("Error", "No se pudo cargar el chofer para edición", "error");
+    }
+  }
+
+  //Borrar Chofer desde Modal
+  async function eliminarChoferDesdeModal(idChofer) {
+    try {
+      const confirmacion = await Swal.fire({
+        title: "¿Estás seguro?",
+        text: "Esta acción eliminará permanentemente al chofer.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+      });
+
+      if (confirmacion.isConfirmed) {
+        await runGoogleFunction("borrarRegistroChofer", idChofer);
+
+        Swal.fire({
+          title: "Eliminado",
+          text: "El chofer fue eliminado correctamente.",
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        // Cerrar el modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("modalVerMasChofer")
+        );
+        modal.hide();
+
+        // Recargar Cards
+        await loadTableData("Choferes");
+      }
+    } catch (error) {
+      console.error("Error al eliminar chofer:", error);
+      Swal.fire("Error", "No se pudo eliminar el chofer.", "error");
+    }
+  }
+
+  //Cargar Opciones Flota
+
+  async function cargarOpcionesFlota() {
+    const { datos: datosFlota } = await runGoogleFunction("getData", "Flota");
+    const { datos: datosChoferes } = await runGoogleFunction(
+      "getData",
+      "Choferes"
+    );
+
+    const selectFlota = document.getElementById("inputAsignadoFlotaChofer");
+    selectFlota.innerHTML =
+      '<option value="">Seleccione flota disponible</option>';
+
+    // 1. Filtrar patentes disponibles
+    const patentesDisponibles = datosFlota
+      .filter((row) => row[8] && row[8].trim().toLowerCase() === "disponible")
+      .map((row) => row[2]); // Columna patente
+
+    // 2. Patentes ya asignadas a otros choferes
+    const patentesAsignadas = datosChoferes
+      .map((row) => row[10])
+      .filter((patente) => patente);
+
+    // 3. Mostrar solo patentes disponibles que NO estén asignadas
+    const patentesLibres = patentesDisponibles.filter(
+      (patente) => !patentesAsignadas.includes(patente)
+    );
+
+    patentesLibres.forEach((patente) => {
+      const option = document.createElement("option");
+      option.value = patente;
+      option.textContent = patente;
+      selectFlota.appendChild(option);
+    });
+  }
+
+  //Actualizar contadores para botones de filtro
+  function actualizarContadores() {
+    const total = datosChoferes.length;
+    const disponibles = datosChoferes.filter(
+      (c) => (c[9] || "").toLowerCase() === "disponible"
+    ).length;
+    const enRuta = datosChoferes.filter(
+      (c) => (c[9] || "").toLowerCase() === "en ruta"
+    ).length;
+    const licencia = datosChoferes.filter(
+      (c) => (c[9] || "").toLowerCase() === "licencia"
+    ).length;
+
+    document.getElementById("btnFiltroTodos").innerHTML = `Todos (${total})`;
+    document.getElementById(
+      "btnFiltroDisponible"
+    ).innerHTML = `Disponibles (${disponibles})`;
+    document.getElementById(
+      "btnFiltroEnRuta"
+    ).innerHTML = `En Ruta (${enRuta})`;
+    document.getElementById(
+      "btnFiltroLicencia"
+    ).innerHTML = `Licencia (${licencia})`;
+  }
+
+  //Crear Filtros dinamicamente para Cards Choferes
+  function crearFiltrosChoferes() {
+    const filtrosContainer = document.getElementById("filtros-choferes");
+
+    filtrosContainer.innerHTML = `
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+      <button class="btn btn-success btn-sm" onclick="abrirModalAgregarChofer()">
+        <i class="bi bi-plus-circle"></i> Agregar Chofer
+      </button>
+
+      <button id="btnFiltroTodos" class="btn btn-outline-primary btn-sm" onclick="filtrarChoferes('todos')">Todos (0)</button>
+      <button id="btnFiltroDisponible" class="btn btn-outline-success btn-sm" onclick="filtrarChoferes('disponible')">Disponibles (0)</button>
+      <button id="btnFiltroEnRuta" class="btn btn-outline-info btn-sm" onclick="filtrarChoferes('en ruta')">En Ruta (0)</button>
+      <button id="btnFiltroLicencia" class="btn btn-outline-warning btn-sm" onclick="filtrarChoferes('licencia')">Licencia (0)</button>
+    </div>
+  `;
+
+    filtrosContainer.style.display = "flex";
+  }
+
+  function abrirModalAgregarChofer() {
+    const modal = new bootstrap.Modal(
+      document.getElementById("modalAgregarChofer")
+    );
+    document.getElementById("formAgregarChofer").reset(); // Limpiar formulario
+    modal.show();
+  }
+
+
 </script>
