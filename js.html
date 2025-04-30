@@ -53,6 +53,7 @@
   // Variables globales
   let currentSheetName = "";
   let dataTableInstance = null;
+  const cacheDatosPorModulo = {};
   const loadingModal = new bootstrap.Modal(
     document.getElementById("loadingModal")
   );
@@ -73,6 +74,42 @@
     if (!fechaISO || !fechaISO.includes("-")) return "";
     const [anio, mes, dia] = fechaISO.split("-");
     return `${dia.padStart(2, "0")}-${mes.padStart(2, "0")}-${anio}`;
+  }
+
+  // 🔵 Función para calcular días por vencer licencia
+  function calcularDiasPorVencer(fechaLicencia) {
+    if (!fechaLicencia) return "-";
+    const vencimiento = new Date(fechaLicencia);
+    const hoy = new Date();
+    const diferencia = Math.ceil((vencimiento - hoy) / (1000 * 60 * 60 * 24));
+    return diferencia >= 0 ? `${diferencia} días` : "Vencida";
+  }
+
+  // 🔵 Función para calcular antigüedad del chofer
+  function calcularAntiguedad(fechaIngreso) {
+    if (!fechaIngreso) return "-";
+    const ingreso = new Date(fechaIngreso);
+    const hoy = new Date();
+    return hoy.getFullYear() - ingreso.getFullYear();
+  }
+
+  // 🔵 Función para obtener clases CSS de acuerdo al estado
+  function obtenerClasesEstado(estado) {
+    switch (estado) {
+      case "disponible":
+        return {
+          badgeClass: "estado-disponible",
+          bordeClass: "borde-disponible",
+        };
+      case "en ruta":
+        return { badgeClass: "estado-en-ruta", bordeClass: "borde-en-ruta" };
+      case "licencia":
+        return { badgeClass: "estado-licencia", bordeClass: "borde-licencia" };
+      case "baja":
+        return { badgeClass: "estado-baja", bordeClass: "borde-baja" };
+      default:
+        return { badgeClass: "estado-disponible", bordeClass: "" };
+    }
   }
 
   // Función para mostrar loading
@@ -109,39 +146,41 @@
     const actionsDiv = document.getElementById("action-buttons");
 
     currentSheetName = sheetName;
-
-    // Mostrar encabezado y limpiar botones
     header.style.display = "flex";
     actionsDiv.innerHTML = "";
 
+    // 🔵 Mostrar cards si es Choferes
     if (sheetName === "Choferes") {
-      // 🔵 Solo módulo Choferes
       cardsContainer.style.display = "flex";
       tablaPrueba.style.display = "none";
 
-      // 🔴 Destruir DataTable si existe
       if (dataTableInstance) {
         dataTableInstance.destroy();
-        dataTableInstance = null; // Liberamos
-        document.getElementById("tablaPrueba").innerHTML = ""; // Limpiamos HTML de tabla
+        dataTableInstance = null;
+        document.getElementById("tablaPrueba").innerHTML = "";
       }
 
       filtrosContainer.style.display = "flex";
       filtrosContainer.innerHTML = "";
       crearFiltrosChoferes();
       document.getElementById("currentSectionTitle").textContent = "Choferes";
+
+      if (!cacheDatosPorModulo["Choferes"]) {
+        const { datos } = await runGoogleFunction("getData", "Choferes");
+        cacheDatosPorModulo["Choferes"] = datos;
+      }
+      datosChoferes = cacheDatosPorModulo["Choferes"];
       await mostrarCardsChoferes();
     } else {
-      // 🔵 Para cualquier otro módulo (Flota, Viajes, etc):
+      // 🔵 Otros módulos (Flota, Semirremolque, etc.)
       cardsContainer.style.display = "none";
       if (filtrosContainer) {
         filtrosContainer.style.display = "none";
         filtrosContainer.innerHTML = "";
       }
       tablaPrueba.style.display = "table";
-
       cardsContainer.innerHTML = "";
-      // Limpiar Cards
+
       document.getElementById(
         "currentSectionTitle"
       ).textContent = `Cargando ${sheetName}...`;
@@ -152,7 +191,17 @@
       <span class="visually-hidden">Cargando...</span></div></td></tr>`;
 
       try {
-        const object = await runGoogleFunction("getData", sheetName);
+        let object;
+        if (cacheDatosPorModulo[sheetName]) {
+          object = {
+            headers: cacheDatosPorModulo[sheetName + "_headers"],
+            datos: cacheDatosPorModulo[sheetName],
+          };
+        } else {
+          object = await runGoogleFunction("getData", sheetName);
+          cacheDatosPorModulo[sheetName] = object.datos;
+          cacheDatosPorModulo[sheetName + "_headers"] = object.headers;
+        }
         document.getElementById("currentSectionTitle").textContent = sheetName;
         createActionButtons();
         updateTable(object.headers, object.datos);
@@ -179,6 +228,8 @@
       "bi-arrow-clockwise",
       "Actualizar",
       () => {
+        cacheDatosPorModulo[currentSheetName] = null;
+        cacheDatosPorModulo[`${currentSheetName}_headers`] = null;
         loadTableData(currentSheetName);
       }
     );
@@ -214,21 +265,25 @@
     return btn;
   }
 
-  // Mostrar modal de agregar
+  // Mostrar modal de agregar (optimizado)
   function showAddModal(modalId, title) {
     const modal = new bootstrap.Modal(document.getElementById(modalId));
     document.getElementById(`${modalId}Label`).textContent = title;
     document.getElementById(modalId.replace("modal", "form")).reset();
 
-    // 🔥 Solo si abrimos el Modal Agregar Chofer, cargamos las patentes
     if (modalId === "modalAgregarChofer") {
-      cargarOpcionesFlota();
+      const select = document.getElementById("inputAsignadoFlotaChofer");
+      if (select.options.length <= 1) {
+        cargarOpcionesFlota();
+      }
     } else if (modalId === "modalAgregarSemirremolque") {
-      cargarOpcionesChoferes(); // 🔥 Debemos crear esta función para cargar el listado de choferes
+      // 🔥 🔥 🔥 AQUÍ EL CAMBIO 🔥 🔥 🔥
+      cargarOpcionesChoferesAgregar();
     }
 
     modal.show();
   }
+
   // Función optimizada para actualizar la tabla
   function updateTable(headers, data) {
     // 🔵 Destruir tabla anterior si existe
@@ -258,6 +313,7 @@
     if (currentSheetName === "Flota") {
       dataTableInstance = new DataTable("#tablaPrueba", {
         ...baseConfig,
+        pageLength: 50,
         data: data.map((row) => [...row, ""]),
         columns: formattedCols,
         columnDefs: getFlotaColumnDefs(headers),
@@ -272,6 +328,7 @@
     else if (currentSheetName === "Semirremolque") {
       dataTableInstance = new DataTable("#tablaPrueba", {
         ...baseConfig,
+        pageLength: 25,
         data: data.map((row) => [...row, ""]),
         columns: formattedCols,
         columnDefs: getSemirremolqueColumnDefs(headers),
@@ -570,7 +627,10 @@
         showConfirmButton: false,
       });
 
-      await loadTableData(currentSheetName);
+      // 🔥 Limpiar cache antes de volver a cargar
+      cacheDatosPorModulo["Flota"] = null;
+      cacheDatosPorModulo["Flota_headers"] = null;
+      await loadTableData("Flota");
     } catch (error) {
       console.error("❌ Error al guardar:", error);
       Swal.fire({
@@ -667,6 +727,10 @@
           timer: 1500,
           showConfirmButton: false,
         });
+        // 🔥 Agrega estas 2 líneas:
+        cacheDatosPorModulo[currentSheetName] = null;
+        cacheDatosPorModulo[currentSheetName + "_headers"] = null;
+
         await loadTableData(currentSheetName);
       } else {
         throw new Error("No se pudo actualizar en el backend.");
@@ -779,7 +843,18 @@
   //Guardar Chofer
   //-------------------------------------------
   document.getElementById("btnGuardarChofer").onclick = async function () {
+    const btn = this;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML =
+      '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+
     try {
+      // 🔴 Validación personalizada
+      if (!validarFormularioAgregarChofer()) {
+        throw new Error("Por favor, completa los campos obligatorios.");
+      }
+
       const formData = getFormData("formAgregarChofer");
       const idChofer = await runGoogleFunction("generarIdChofer");
 
@@ -796,31 +871,29 @@
         formData.estadochofer,
         formData.asignadoflotachofer,
         formData.observacioneschofer,
-        formData.fotochofer || "", // ✅ Pegar la URL de imagen (o vacío)
+        formData.fotochofer || "",
       ];
 
       await runGoogleFunction("agregarRegistroChofer", registro);
 
-      const modalElement = document.getElementById("modalAgregarChofer");
-      const modalInstance =
-        bootstrap.Modal.getInstance(modalElement) ||
-        new bootstrap.Modal(modalElement);
-      modalInstance.hide();
+      $("#modalAgregarChofer").modal("hide");
 
       await Swal.fire({
         icon: "success",
         title: "Guardado",
-        text: "El chofer se ha guardado exitosamente",
+        text: "El chofer se ha guardado correctamente",
         timer: 1500,
         showConfirmButton: false,
       });
 
-      // 🔥 ACTUALIZACIÓN AQUÍ:
-      datosChoferes = []; // Vaciar datos anteriores
-      await loadTableData("Choferes"); // Volver a cargar cards
+      datosChoferes = [];
+      await mostrarCardsChoferes();
     } catch (error) {
       console.error("Error al guardar chofer:", error);
-      Swal.fire("Error", "No se pudo guardar el chofer.", "error");
+      Swal.fire("Error", error.message || "Error al guardar chofer", "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   };
 
@@ -900,13 +973,16 @@
     .off("click", ".btn-editar-chofer")
     .on("click", ".btn-editar-chofer", async function () {
       const idChofer = $(this).data("id");
+
       try {
         const registro = await runGoogleFunction(
           "obtenerRegistroChofer",
           idChofer
         );
+
         if (registro) {
           llenarModalEditarChofer(registro);
+
           const modal = new bootstrap.Modal(
             document.getElementById("modalEditarChofer")
           );
@@ -915,8 +991,12 @@
           Swal.fire("Error", "No se encontró el chofer.", "error");
         }
       } catch (error) {
-        console.error("Error al cargar chofer:", error);
-        Swal.fire("Error", "No se pudo cargar el chofer.", "error");
+        console.error("❌ Error al cargar datos del chofer:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "No se pudo cargar los datos del chofer.",
+        });
       }
     });
 
@@ -935,18 +1015,18 @@
 
         const registroModificado = [
           Number(formData.idchofer),
-          formData.nombrechofer,
-          formData.dnichofer,
-          formData.licenciachofer,
-          formData.tipolicenciachofer,
-          formData.vencimientolicenciachofer,
-          formData.telefonochofer,
-          formData.emailchofer,
-          formData.fechaingresochofer,
-          formData.estadochofer,
-          formData.asignadoflotachofer,
-          formData.observacioneschofer,
-          formData.fotochofer || "", // ✅ Mantener o actualizar la URL de foto
+          formData.nombrechofer || "",
+          formData.dnichofer || "",
+          formData.licenciachofer || "",
+          formData.tipolicenciachofer || "",
+          formData.vencimientolicenciachofer || "",
+          formData.telefonochofer || "",
+          formData.emailchofer || "",
+          formData.fechaingresochofer || "",
+          formData.estadochofer || "",
+          formData.asignadoflotachofer || "",
+          formData.observacioneschofer || "",
+          formData.fotochofer || "",
         ];
 
         const resultado = await runGoogleFunction(
@@ -959,24 +1039,28 @@
             document.getElementById("modalEditarChofer")
           );
           modal.hide();
-          Swal.fire(
-            "Guardado",
-            "Cambios actualizados correctamente.",
-            "success"
-          );
-          datosChoferes = []; // 🔄 Vaciar datos previos para forzar recarga actualizada
-          -(await loadTableData("Choferes"));
-          +(await mostrarCardsChoferes("todos"));
+
+          await Swal.fire({
+            icon: "success",
+            title: "Actualizado",
+            text: "El chofer fue actualizado correctamente",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          // 🔥 Refrescamos correctamente los cards
+          datosChoferes = []; // ⚡ Limpiar datos anteriores
+          await mostrarCardsChoferes("todos", true); // ⚡ Recargar cards desde servidor
         } else {
-          throw new Error("No se pudo actualizar el registro");
+          throw new Error("No se pudo actualizar el registro.");
         }
       } catch (error) {
-        console.error("Error al actualizar chofer:", error);
-        Swal.fire(
-          "Error",
-          error.message || "No se pudo actualizar correctamente",
-          "error"
-        );
+        console.error("❌ Error al actualizar chofer:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "Error al actualizar el chofer",
+        });
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
@@ -1073,68 +1157,38 @@
 
   //Mostrar Cards de choferes
   let datosChoferes = []; // 🔥 Variable global para almacenar los choferes cargados
+  //Mostrar datosSemirremolque
+  let datosSemirremolques = []; // 🔥 Variable global para almacenar los semirremolque cargados
 
-  async function mostrarCardsChoferes(filtroEstado = "todos") {
+  // 🔵 Solo carga datos si es necesario
+  async function cargarDatosChoferes(force = false) {
+    if (force || datosChoferes.length === 0) {
+      const { datos } = await runGoogleFunction("getData", "Choferes");
+      datosChoferes = datos;
+      cacheDatosPorModulo["Choferes"] = datos;
+    }
+  }
+
+  // 🔵 Genera los cards a partir de datosChoferes
+  function renderizarCardsChoferes(filtroEstado = "todos") {
     const container = document.getElementById("cards-choferes");
     container.innerHTML = "";
 
-    if (datosChoferes.length === 0) {
-      const { datos } = await runGoogleFunction("getData", "Choferes");
-      datosChoferes = datos;
-    }
     actualizarContadores();
 
     datosChoferes.forEach((chofer) => {
       const estado = (chofer[9] || "").toLowerCase();
-      const asignadoFlota = chofer[10];
-      const foto =
-        chofer[12] || "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
-
       if (filtroEstado === "todos" || estado === filtroEstado) {
-        let badgeClass = "";
-        let bordeClass = "";
-        switch (estado) {
-          case "disponible":
-            badgeClass = "estado-disponible";
-            bordeClass = "borde-disponible";
-            break;
-          case "en ruta":
-            badgeClass = "estado-en-ruta";
-            bordeClass = "borde-en-ruta";
-            break;
-          case "licencia":
-            badgeClass = "estado-licencia";
-            bordeClass = "borde-licencia";
-            break;
-          case "baja":
-            badgeClass = "estado-baja";
-            bordeClass = "borde-baja";
-            break;
-          default:
-            badgeClass = "estado-disponible";
-            bordeClass = "";
-        }
+        const foto =
+          chofer[12] ||
+          "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
+        const diasPorVencer = calcularDiasPorVencer(chofer[5]);
+        const antiguedad = calcularAntiguedad(chofer[8]);
 
-        let diasPorVencer = "-";
-        if (chofer[5]) {
-          const vencimiento = new Date(chofer[5]);
-          const hoy = new Date();
-          const diferencia = Math.ceil(
-            (vencimiento - hoy) / (1000 * 60 * 60 * 24)
-          );
-          diasPorVencer = diferencia >= 0 ? diferencia + " días" : "Vencida";
-        }
-
-        let edad = "-";
-        if (chofer[8]) {
-          const ingreso = new Date(chofer[8]);
-          const hoy = new Date();
-          edad = hoy.getFullYear() - ingreso.getFullYear();
-        }
+        const { badgeClass, bordeClass } = obtenerClasesEstado(estado);
 
         const card = document.createElement("div");
         card.className = "col-md-3 mb-4";
-
         card.innerHTML = `
         <div class="card h-100 shadow-sm card-chofer">
           <div class="card-body text-center d-flex flex-column">
@@ -1143,15 +1197,11 @@
             <span class="estado-badge ${badgeClass}">${
           chofer[9] || "Sin Estado"
         }</span>
-
             <p class="mt-2 mb-2 small text-muted">
-              <strong>Vence Licencia:</strong> ${
-                chofer[5] ? chofer[5].split("T")[0] : "-"
-              }<br>
+              <strong>Vence Licencia:</strong> ${formatearFecha(chofer[5])}<br>
               <strong>Días por vencer:</strong> ${diasPorVencer}<br>
-              <strong>Edad:</strong> ${edad}
+              <strong>Antigüedad:</strong> ${antiguedad}
             </p>
-
             <div class="mt-auto">
               <button class="btn btn-outline-primary btn-sm btn-ver-mas-chofer" data-id="${
                 chofer[0]
@@ -1160,19 +1210,123 @@
           </div>
         </div>
       `;
-
         container.appendChild(card);
       }
     });
 
-    // Configurar eventos "Ver más"
+    // Eventos para ver más
     document.querySelectorAll(".btn-ver-mas-chofer").forEach((btn) => {
       btn.addEventListener("click", async function () {
-        const idChofer = this.getAttribute("data-id");
-        await mostrarDetallesChofer(idChofer);
+        const id = this.getAttribute("data-id");
+        await mostrarDetallesChofer(id);
       });
     });
   }
+
+  async function mostrarCardsChoferes(filtro = "todos", force = false) {
+    await cargarDatosChoferes(force);
+    renderizarCardsChoferes(filtro);
+  }
+
+  // async function mostrarCardsChoferes(filtroEstado = "todos") {
+  //   const container = document.getElementById("cards-choferes");
+  //   container.innerHTML = "";
+
+  //   if (datosChoferes.length === 0) {
+  //     const { datos } = await runGoogleFunction("getData", "Choferes");
+  //     datosChoferes = datos;
+  //   }
+  //   actualizarContadores();
+
+  //   datosChoferes.forEach((chofer) => {
+  //     const estado = (chofer[9] || "").toLowerCase();
+  //     const asignadoFlota = chofer[10];
+  //     const foto =
+  //       chofer[12] || "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
+
+  //     if (filtroEstado === "todos" || estado === filtroEstado) {
+  //       let badgeClass = "";
+  //       let bordeClass = "";
+  //       switch (estado) {
+  //         case "disponible":
+  //           badgeClass = "estado-disponible";
+  //           bordeClass = "borde-disponible";
+  //           break;
+  //         case "en ruta":
+  //           badgeClass = "estado-en-ruta";
+  //           bordeClass = "borde-en-ruta";
+  //           break;
+  //         case "licencia":
+  //           badgeClass = "estado-licencia";
+  //           bordeClass = "borde-licencia";
+  //           break;
+  //         case "baja":
+  //           badgeClass = "estado-baja";
+  //           bordeClass = "borde-baja";
+  //           break;
+  //         default:
+  //           badgeClass = "estado-disponible";
+  //           bordeClass = "";
+  //       }
+
+  //       let diasPorVencer = "-";
+  //       if (chofer[5]) {
+  //         const vencimiento = new Date(chofer[5]);
+  //         const hoy = new Date();
+  //         const diferencia = Math.ceil(
+  //           (vencimiento - hoy) / (1000 * 60 * 60 * 24)
+  //         );
+  //         diasPorVencer = diferencia >= 0 ? diferencia + " días" : "Vencida";
+  //       }
+
+  //       let edad = "-";
+  //       if (chofer[8]) {
+  //         const ingreso = new Date(chofer[8]);
+  //         const hoy = new Date();
+  //         edad = hoy.getFullYear() - ingreso.getFullYear();
+  //       }
+
+  //       const card = document.createElement("div");
+  //       card.className = "col-md-3 mb-4";
+
+  //       card.innerHTML = `
+  //       <div class="card h-100 shadow-sm card-chofer">
+  //         <div class="card-body text-center d-flex flex-column">
+  //           <img src='${foto}' class="card-img-top ${bordeClass}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1077/1077114.png';" alt="Foto Chofer">
+  //           <h5 class="card-title mt-2">${chofer[1] || "Sin Nombre"}</h5>
+  //           <span class="estado-badge ${badgeClass}">${
+  //         chofer[9] || "Sin Estado"
+  //       }</span>
+
+  //           <p class="mt-2 mb-2 small text-muted">
+  //             <strong>Vence Licencia:</strong> ${
+  //               chofer[5] ? chofer[5].split("T")[0] : "-"
+  //             }<br>
+  //             <strong>Días por vencer:</strong> ${diasPorVencer}<br>
+  //             <strong>Edad:</strong> ${edad}
+  //           </p>
+
+  //           <div class="mt-auto">
+  //             <button class="btn btn-outline-primary btn-sm btn-ver-mas-chofer" data-id="${
+  //               chofer[0]
+  //             }">Ver más</button>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     `;
+
+  //       container.appendChild(card);
+  //     }
+  //   });
+
+  //   // Configurar eventos "Ver más"
+  //   document.querySelectorAll(".btn-ver-mas-chofer").forEach((btn) => {
+  //     btn.addEventListener("click", async function () {
+  //       const idChofer = this.getAttribute("data-id");
+  //       await mostrarDetallesChofer(idChofer);
+  //     });
+  //   });
+  // }
 
   // Función para manejar el filtro
   function filtrarChoferes(estado) {
@@ -1321,7 +1475,7 @@
         modal.hide();
 
         // Recargar Cards
-        await loadTableData("Choferes");
+        await mostrarCardsChoferes("todos", true);
       }
     } catch (error) {
       console.error("Error al eliminar chofer:", error);
@@ -1418,6 +1572,34 @@
     modal.show();
   }
 
+  function validarFormularioAgregarChofer() {
+    const form = document.getElementById("formAgregarChofer");
+    let isValid = true;
+
+    // Lista de campos obligatorios
+    const camposRequeridos = [
+      "inputNombreChofer",
+      "inputDniChofer",
+      "inputLicenciaChofer",
+      "inputTipoLicenciaChofer",
+      "inputVencimientoLicenciaChofer",
+      "inputFechaIngresoChofer",
+      "inputEstadoChofer",
+    ];
+
+    camposRequeridos.forEach((id) => {
+      const field = document.getElementById(id);
+      if (!field || !field.value.trim()) {
+        field.classList.add("is-invalid");
+        isValid = false;
+      } else {
+        field.classList.remove("is-invalid");
+      }
+    });
+
+    return isValid;
+  }
+
   //------------------------------
   // Cargar módulo Semirremolque
   //------------------------------
@@ -1430,28 +1612,22 @@
     async function () {
       const btn = this;
       const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML =
+        '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
 
       try {
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
-
-        const form = document.getElementById("formEditarSemirremolque");
-        if (!form.checkValidity()) {
-          form.classList.add("was-validated");
-          throw new Error("Completa todos los campos requeridos.");
-        }
-
         const formData = getFormData("formEditarSemirremolque");
 
         const registroModificado = [
           Number(formData.idsemirremolque),
           formData.patentesemirremolque || "",
-          formData.gensetsemirremolque || "",
-          formData.tiposamirremolque || "",
-          formData.anosamirremolque || "",
-          formData.estadosamirremolque || "",
-          formData.asignadosamirremolque || "",
-          formData.observacionessamirremolque || "",
+          formData.nrogensetsemirremolque || "",
+          formData.tiposemirremolque || "",
+          formData.añosemirremolque || "",
+          formData.estadosemirremolque || "",
+          formData.asignadochofersemirremolque || "",
+          formData.observacionessemirremolque || "",
         ];
 
         const resultado = await runGoogleFunction(
@@ -1460,55 +1636,41 @@
         );
 
         if (resultado === "success") {
-          $("#modalEditarSemirremolque").modal("hide");
+          const modal = bootstrap.Modal.getInstance(
+            document.getElementById("modalEditarSemirremolque")
+          );
+          modal.hide();
 
           await Swal.fire({
             icon: "success",
             title: "Actualizado",
-            text: "El semirremolque fue actualizado correctamente.",
+            text: "El registro fue actualizado correctamente",
             timer: 1500,
             showConfirmButton: false,
           });
 
-          await loadTableData(currentSheetName);
+          // 🔥 ACTUALIZAR correctamente:
+          if (dataTableInstance) {
+            dataTableInstance.destroy();
+            document.getElementById("tablaPrueba").innerHTML = "";
+          }
+          datosSemirremolques = []; // limpiar cache si tienes esta variable
+          await loadTableData("Semirremolque");
         } else {
-          throw new Error("No se pudo actualizar en el servidor.");
+          throw new Error("No se pudo actualizar el registro");
         }
       } catch (error) {
-        console.error("❌ Error al actualizar Semirremolque:", error);
-        Swal.fire(
-          "Error",
-          error.message || "No se pudo actualizar correctamente.",
-          "error"
-        );
+        console.error("Error al actualizar semirremolque:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "Error al actualizar el semirremolque",
+        });
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
     };
-
-  // Función para cargar lista de choferes en el modal Semirremolque
-  async function cargarOpcionesChoferes() {
-    const { datos: datosChoferes } = await runGoogleFunction(
-      "getData",
-      "Choferes"
-    );
-
-    const selectChofer = document.getElementById(
-      "inputAsignadoChoferSemirremolque"
-    );
-    selectChofer.innerHTML = '<option value="">Seleccione chofer</option>'; // Limpiar opciones
-
-    datosChoferes.forEach((chofer) => {
-      if (chofer[1]) {
-        // El nombre del chofer está en columna 1
-        const option = document.createElement("option");
-        option.value = chofer[1];
-        option.textContent = chofer[1];
-        selectChofer.appendChild(option);
-      }
-    });
-  }
 
   // Evento botón Guardar Semirremolque
   document.getElementById("btnGuardarSemirremolque").onclick =
@@ -1520,6 +1682,11 @@
         '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
 
       try {
+        // 🔴 Validación personalizada
+        if (!validarFormularioAgregarSemirremolque()) {
+          throw new Error("Por favor, completa los campos obligatorios.");
+        }
+
         const formData = getFormData("formAgregarSemirremolque");
         const idSemirremolque = await runGoogleFunction(
           "generarIdSemirremolque"
@@ -1548,6 +1715,8 @@
           showConfirmButton: false,
         });
 
+        cacheDatosPorModulo["Semirremolque"] = null;
+        cacheDatosPorModulo["Semirremolque_headers"] = null;
         await loadTableData("Semirremolque");
       } catch (error) {
         console.error("❌ Error al guardar semirremolque:", error);
@@ -1629,6 +1798,7 @@
   }
 
   function setupBotonesSemirremolque() {
+    // Botón editar
     $(document)
       .off("click", ".btn-editar-semirremolque")
       .on("click", ".btn-editar-semirremolque", async function () {
@@ -1639,7 +1809,7 @@
             idSemirremolque
           );
           if (registro) {
-            llenarModalEditarSemirremolque(registro);
+            await llenarModalEditarSemirremolque(registro);
             const modal = new bootstrap.Modal(
               document.getElementById("modalEditarSemirremolque")
             );
@@ -1657,6 +1827,7 @@
         }
       });
 
+    // Botón borrar
     $(document)
       .off("click", ".btn-borrar-semirremolque")
       .on("click", ".btn-borrar-semirremolque", async function () {
@@ -1664,7 +1835,7 @@
 
         const confirmacion = await Swal.fire({
           title: "¿Estás seguro?",
-          text: `Se eliminará el registro con ID: ${idSemirremolque}`,
+          text: `Se eliminará el semirremolque con ID: ${idSemirremolque}`,
           icon: "warning",
           showCancelButton: true,
           confirmButtonColor: "#dc3545",
@@ -1675,53 +1846,76 @@
 
         if (confirmacion.isConfirmed) {
           try {
+            showLoading("Eliminando...");
             await runGoogleFunction(
               "borrarRegistroSemirremolque",
               idSemirremolque
             );
-            Swal.fire(
-              "¡Borrado!",
-              "Registro eliminado correctamente.",
-              "success"
-            );
+
+            Swal.fire({
+              icon: "success",
+              title: "Eliminado",
+              text: "Semirremolque eliminado correctamente",
+              timer: 1500,
+              showConfirmButton: false,
+            });
+
+            // 🔥 LIMPIAR CACHÉ y RECARGAR tabla
+            cacheDatosPorModulo["Semirremolque"] = null;
+            cacheDatosPorModulo["Semirremolque_headers"] = null;
             await loadTableData("Semirremolque");
           } catch (error) {
             console.error("Error al borrar:", error);
             Swal.fire("Error", "No se pudo borrar el registro.", "error");
+          } finally {
+            hideLoading();
           }
         }
       });
   }
 
-  //Función para llenar modal editar semirremolque
-  function llenarModalEditarSemirremolque(registro) {
+  // Función para llenar el Modal de Editar Semirremolque (optimizada)
+  async function llenarModalEditarSemirremolque(registro) {
     try {
-      document.getElementById("editarIdSemirremolque").value = registro[0];
-      document.getElementById("editarPatenteSemirremolque").value = registro[1];
-      document.getElementById("editarNroGensetSemirremolque").value =
-        registro[2];
-      document.getElementById("editarTipoSemirremolque").value = registro[3];
-      document.getElementById("editarAñoSemirremolque").value = registro[4];
-      document.getElementById("editarEstadoSemirremolque").value = registro[5];
-      document.getElementById("editarObservacionesSemirremolque").value =
-        registro[7];
+      // Validar si viene registro correcto
+      if (!registro || registro.length < 8) {
+        throw new Error("Datos de semirremolque incompletos.");
+      }
 
-      // Cargar asignado a chofer dinámicamente
-      cargarOpcionesChoferesEditar().then(() => {
-        document.getElementById("editarAsignadoChoferSemirremolque").value =
-          registro[6] || "";
-      });
+      // Asignar valores al formulario
+      document.getElementById("editarIdSemirremolque").value =
+        registro[0] || "";
+      document.getElementById("editarPatenteSemirremolque").value =
+        registro[1] || "";
+      document.getElementById("editarNroGensetSemirremolque").value =
+        registro[2] || "";
+      document.getElementById("editarTipoSemirremolque").value =
+        registro[3] || "";
+      document.getElementById("editarAñoSemirremolque").value =
+        registro[4] || "";
+      document.getElementById("editarEstadoSemirremolque").value =
+        registro[5] || "";
+      document.getElementById("editarObservacionesSemirremolque").value =
+        registro[7] || "";
+
+      // 🔵 Cargar choferes disponibles, excluyendo los ya asignados (excepto el actual)
+      await cargarOpcionesChoferesEditar(registro[0]);
+
+      // Seleccionar el valor actual del chofer asignado
+      document.getElementById("editarAsignadoChoferSemirremolque").value =
+        registro[6] || "";
     } catch (error) {
       console.error("Error al llenar modal editar semirremolque:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudieron cargar los datos para editar el semirremolque",
+        text: error.message || "No se pudieron cargar los datos para edición.",
       });
     }
   }
 
   function setupBotonesFlota() {
+    // Botón editar
     $(document)
       .off("click", ".btn-editar-flota")
       .on("click", ".btn-editar-flota", async function () {
@@ -1746,6 +1940,7 @@
         }
       });
 
+    // Botón borrar
     $(document)
       .off("click", ".btn-borrar-flota")
       .on("click", ".btn-borrar-flota", async function () {
@@ -1764,16 +1959,26 @@
 
         if (confirmacion.isConfirmed) {
           try {
+            showLoading("Eliminando...");
             await runGoogleFunction("borrarRegistroFlota", idFlota);
-            Swal.fire(
-              "¡Borrado!",
-              "Registro eliminado correctamente.",
-              "success"
-            );
+
+            Swal.fire({
+              icon: "success",
+              title: "Eliminado",
+              text: "Registro eliminado correctamente",
+              timer: 1500,
+              showConfirmButton: false,
+            });
+
+            // 🔥 LIMPIAR CACHÉ y RECARGAR tabla
+            cacheDatosPorModulo["Flota"] = null;
+            cacheDatosPorModulo["Flota_headers"] = null;
             await loadTableData("Flota");
           } catch (error) {
             console.error("Error al borrar:", error);
             Swal.fire("Error", "No se pudo borrar el registro", "error");
+          } finally {
+            hideLoading();
           }
         }
       });
@@ -1821,12 +2026,15 @@
             showConfirmButton: false,
           });
 
-          await loadTableData(currentSheetName);
+          // 🔥 CORREGIDO: limpiar caché y recargar datos actualizados
+          delete cacheDatosPorModulo["Semirremolque"];
+          delete cacheDatosPorModulo["Semirremolque_headers"];
+          await loadTableData("Semirremolque");
         } else {
           throw new Error("No se pudo actualizar el registro");
         }
       } catch (error) {
-        console.error("Error al actualizar semirremolque:", error);
+        console.error("❌ Error al actualizar semirremolque:", error);
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -1837,23 +2045,6 @@
         btn.innerHTML = originalText;
       }
     };
-
-  async function cargarOpcionesChoferesEditar() {
-    const { datos: datosChoferes } = await runGoogleFunction(
-      "getData",
-      "Choferes"
-    );
-
-    const select = document.getElementById("editarAsignadoChoferSemirremolque");
-    select.innerHTML = '<option value="">Seleccione chofer</option>';
-
-    datosChoferes.forEach((chofer) => {
-      const option = document.createElement("option");
-      option.value = chofer[1]; // Nombre del chofer
-      option.textContent = chofer[1];
-      select.appendChild(option);
-    });
-  }
 
   //Función Borrar Semirremolque
 
@@ -1895,4 +2086,176 @@
         }
       });
     });
+
+  //Validar chofer disponible en semirremolque
+  async function validarChoferDisponible(choferSeleccionado, idActual = null) {
+    const { datos } = await runGoogleFunction("getData", "Semirremolque");
+
+    return !datos.some((row) => {
+      const idRegistro = String(row[0]);
+      const choferAsignado = (row[6] || "").trim().toLowerCase();
+      return (
+        choferAsignado === choferSeleccionado.trim().toLowerCase() &&
+        idRegistro !== String(idActual)
+      );
+    });
+  }
+
+  // 🔵 Cargar lista de Choferes para editar Semirremolque
+  async function cargarOpcionesChoferesEditar(idSemirremolqueActual) {
+    const { datos: datosChoferes } = await runGoogleFunction(
+      "getData",
+      "Choferes"
+    );
+    const { datos: datosSemirremolque } = await runGoogleFunction(
+      "getData",
+      "Semirremolque"
+    );
+
+    const select = document.getElementById("editarAsignadoChoferSemirremolque");
+    select.innerHTML = '<option value="">Seleccione chofer</option>';
+
+    const choferesYaAsignados = datosSemirremolque
+      .filter((row) => String(row[0]) !== String(idSemirremolqueActual)) // ⚠️ Excluir el actual
+      .map((row) => row[6])
+      .filter((nombre) => !!nombre && nombre.trim() !== "");
+
+    const disponibles = datosChoferes.filter(
+      (chofer) => chofer[1] && !choferesYaAsignados.includes(chofer[1])
+    );
+
+    disponibles.forEach((chofer) => {
+      const option = document.createElement("option");
+      option.value = chofer[1];
+      option.textContent = chofer[1];
+      select.appendChild(option);
+    });
+  }
+
+  // Variable global para cachear los choferes una vez cargados
+  let cacheChoferesParaSemirremolque = [];
+
+  async function cargarOpcionesChoferes() {
+    try {
+      const { datos: datosChoferes } = await runGoogleFunction(
+        "getData",
+        "Choferes"
+      );
+      const { datos: datosSemirremolque } = await runGoogleFunction(
+        "getData",
+        "Semirremolque"
+      );
+
+      const select = document.getElementById(
+        "inputAsignadoChoferSemirremolque"
+      );
+      select.innerHTML = '<option value="">Seleccione chofer</option>';
+
+      // 🔵 Obtener nombres de choferes ya asignados a un semirremolque
+      const choferesYaAsignados = datosSemirremolque
+        .map((row) => row[6])
+        .filter((nombre) => !!nombre && nombre.trim() !== "");
+
+      // 🔵 Filtrar solo los choferes disponibles
+      const choferesDisponibles = datosChoferes.filter((chofer) => {
+        const nombre = chofer[1];
+        return nombre && !choferesYaAsignados.includes(nombre);
+      });
+
+      // 🔵 Agregar al select solo los disponibles
+      choferesDisponibles.forEach((chofer) => {
+        const nombre = chofer[1];
+        const option = document.createElement("option");
+        option.value = nombre;
+        option.textContent = nombre;
+        select.appendChild(option);
+      });
+    } catch (error) {
+      console.error("❌ Error al cargar opciones de choferes:", error);
+      Swal.fire(
+        "Error",
+        "No se pudieron cargar los choferes disponibles",
+        "error"
+      );
+    }
+  }
+
+  async function validarChoferDisponible(choferSeleccionado, idActual = null) {
+    const { datos } = await runGoogleFunction("getData", "Semirremolque");
+
+    return !datos.some((row) => {
+      const idRegistro = String(row[0]);
+      const choferAsignado = (row[6] || "").trim().toLowerCase();
+      return (
+        choferAsignado === choferSeleccionado.trim().toLowerCase() &&
+        idRegistro !== String(idActual)
+      );
+    });
+  }
+
+  async function cargarOpcionesChoferesAgregar() {
+    try {
+      const { datos: datosChoferes } = await runGoogleFunction(
+        "getData",
+        "Choferes"
+      );
+      const { datos: datosSemirremolque } = await runGoogleFunction(
+        "getData",
+        "Semirremolque"
+      );
+
+      const select = document.getElementById(
+        "inputAsignadoChoferSemirremolque"
+      );
+      select.innerHTML = '<option value="">Seleccione chofer</option>';
+
+      // Obtener IDs de choferes ya asignados en Semirremolque
+      const asignados = datosSemirremolque
+        .map((row) => row[6])
+        .filter((asignado) => asignado && asignado.trim() !== "");
+
+      datosChoferes.forEach((chofer) => {
+        if (chofer[1] && !asignados.includes(chofer[1])) {
+          // Nombre en columna 1
+          const option = document.createElement("option");
+          option.value = chofer[1];
+          option.textContent = chofer[1];
+          select.appendChild(option);
+        }
+      });
+    } catch (error) {
+      console.error("Error cargando choferes disponibles:", error);
+      Swal.fire(
+        "Error",
+        "No se pudieron cargar los choferes disponibles.",
+        "error"
+      );
+    }
+  }
+
+  function validarFormularioAgregarSemirremolque() {
+    const form = document.getElementById("formAgregarSemirremolque");
+    let isValid = true;
+
+    // Lista de campos obligatorios
+    const camposRequeridos = [
+      "inputPatenteSemirremolque",
+      "inputNroGensetSemirremolque",
+      "inputTipoSemirremolque",
+      "inputAñoSemirremolque",
+      "inputEstadoSemirremolque",
+    ];
+
+    camposRequeridos.forEach((id) => {
+      const field = document.getElementById(id);
+      if (!field || !field.value.trim()) {
+        field.classList.add("is-invalid");
+        isValid = false;
+      } else {
+        field.classList.remove("is-invalid");
+      }
+    });
+
+    return isValid;
+  }
 </script>
