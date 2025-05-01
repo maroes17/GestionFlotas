@@ -53,6 +53,7 @@
   // Variables globales
   let currentSheetName = "";
   let dataTableInstance = null;
+  let listenerTipoPolizaAgregado = false;
   const cacheDatosPorModulo = {};
   const loadingModal = new bootstrap.Modal(
     document.getElementById("loadingModal")
@@ -91,6 +92,20 @@
     const ingreso = new Date(fechaIngreso);
     const hoy = new Date();
     return hoy.getFullYear() - ingreso.getFullYear();
+  }
+
+  function convertirFechaParaInput(fechaTexto) {
+    if (!fechaTexto || !fechaTexto.includes("-")) return "";
+    const partes = fechaTexto.split("-");
+    if (partes.length === 3) {
+      const [dia, mes, anio] = partes;
+      return `${anio}-${mes}-${dia}`;
+    }
+    return "";
+  }
+
+  function limpiarMoneda(valor) {
+    return valor.replace(/[^0-9]/g, ""); // Elimina CLP, $ y comas
   }
 
   // 🔵 Función para obtener clases CSS de acuerdo al estado
@@ -136,11 +151,15 @@
   document
     .querySelector("#choferesBtn")
     .addEventListener("click", () => loadTableData("Choferes"));
+  document
+    .querySelector("#polizasBtn")
+    .addEventListener("click", () => loadTableData("Polizas"));
 
   // Función optimizada para cargar datos
   async function loadTableData(sheetName) {
     const cardsContainer = document.getElementById("cards-choferes");
     const filtrosContainer = document.getElementById("filtros-choferes");
+    const filtrosPolizasContainer = document.getElementById("filtros-polizas"); // ✅ nuevo
     const tablaPrueba = document.getElementById("tablaPrueba");
     const header = document.getElementById("table-header");
     const actionsDiv = document.getElementById("action-buttons");
@@ -148,6 +167,12 @@
     currentSheetName = sheetName;
     header.style.display = "flex";
     actionsDiv.innerHTML = "";
+
+    // 🔴 Ocultar filtros de pólizas por defecto
+    if (filtrosPolizasContainer) {
+      filtrosPolizasContainer.style.display = "none";
+      filtrosPolizasContainer.innerHTML = "";
+    }
 
     // 🔵 Mostrar cards si es Choferes
     if (sheetName === "Choferes") {
@@ -163,21 +188,24 @@
       filtrosContainer.style.display = "flex";
       filtrosContainer.innerHTML = "";
       crearFiltrosChoferes();
+
       document.getElementById("currentSectionTitle").textContent = "Choferes";
 
       if (!cacheDatosPorModulo["Choferes"]) {
         const { datos } = await runGoogleFunction("getData", "Choferes");
         cacheDatosPorModulo["Choferes"] = datos;
       }
+
       datosChoferes = cacheDatosPorModulo["Choferes"];
       await mostrarCardsChoferes();
     } else {
-      // 🔵 Otros módulos (Flota, Semirremolque, etc.)
+      // 🔵 Otros módulos
       cardsContainer.style.display = "none";
       if (filtrosContainer) {
         filtrosContainer.style.display = "none";
         filtrosContainer.innerHTML = "";
       }
+
       tablaPrueba.style.display = "table";
       cardsContainer.innerHTML = "";
 
@@ -202,9 +230,16 @@
           cacheDatosPorModulo[sheetName] = object.datos;
           cacheDatosPorModulo[sheetName + "_headers"] = object.headers;
         }
+
         document.getElementById("currentSectionTitle").textContent = sheetName;
         createActionButtons();
         updateTable(object.headers, object.datos);
+
+        // ✅ Mostrar filtros solo si es sección Polizas
+        if (sheetName === "Polizas") {
+          crearFiltrosPolizas();
+          filtrosPolizasContainer.style.display = "flex";
+        }
       } catch (error) {
         console.error("Error al cargar datos:", error);
         document.getElementById(
@@ -249,6 +284,8 @@
             "modalAgregarSemirremolque",
             "Agregar nuevo Semirremolque"
           );
+        } else if (currentSheetName === "Polizas") {
+          showAddModal("modalAgregarPoliza", "Agregar nueva póliza");
         }
       }
     );
@@ -277,8 +314,17 @@
         cargarOpcionesFlota();
       }
     } else if (modalId === "modalAgregarSemirremolque") {
-      // 🔥 🔥 🔥 AQUÍ EL CAMBIO 🔥 🔥 🔥
       cargarOpcionesChoferesAgregar();
+    } else if (modalId === "modalAgregarPoliza") {
+      // 🔁 Evitar listeners múltiples
+      if (!listenerTipoPolizaAgregado) {
+        document
+          .getElementById("inputTipoPoliza")
+          .addEventListener("change", actualizarOpcionesPatente);
+        listenerTipoPolizaAgregado = true;
+      }
+
+      actualizarOpcionesPatente(); // Carga inicial según el valor actual
     }
 
     modal.show();
@@ -338,8 +384,23 @@
       });
 
       setupBotonesSemirremolque();
-    } else {
-      // 🔵 Otros módulos
+    }
+    // 🔵 Si estamos en Polizas
+    else if (currentSheetName === "Polizas") {
+      dataTableInstance = new DataTable("#tablaPrueba", {
+        ...baseConfig,
+        data: data.map((row) => [...row, ""]),
+        columns: formattedCols,
+        columnDefs: getPolizasColumnDefs(headers),
+        createdRow: function (row, data) {
+          $(row).attr("data-id", data[0]);
+        },
+      });
+
+      setupBotonesPoliza();
+    }
+    // 🔵 Otros módulos
+    else {
       dataTableInstance = new DataTable("#tablaPrueba", {
         ...baseConfig,
         data: data.map((row) => [...row, ""]),
@@ -583,11 +644,13 @@
       if (!validarFormularioFlota("formAgregarFlota")) return;
 
       const formData = getFormData("formAgregarFlota");
+      const patenteNormalizada = formData.patenteflota.toUpperCase(); // ✅ siempre en mayúsculas
 
       const patenteExiste = await runGoogleFunction(
         "verificarPatenteFlota",
-        formData.patenteflota
+        patenteNormalizada
       );
+
       if (patenteExiste) {
         await Swal.fire({
           icon: "warning",
@@ -603,14 +666,14 @@
       const registro = [
         idFlota,
         formData.tipoflota || "",
-        formData.patenteflota || "",
+        patenteNormalizada, // 👈 aquí también
         formData.nrochasisflota || "",
         formData.marcaflota || "",
         formData.modeloflota || "",
         formData.añoflota || "",
         formData.capacidadflota || "",
         formData.estadoflota || "",
-        formatearFecha(formData.fechaingresoflota), // ✅ Formato corregido
+        formatearFecha(formData.fechaingresoflota),
         formData.observacionesflota || "",
         "Creación de Registro",
       ];
@@ -627,7 +690,6 @@
         showConfirmButton: false,
       });
 
-      // 🔥 Limpiar cache antes de volver a cargar
       cacheDatosPorModulo["Flota"] = null;
       cacheDatosPorModulo["Flota_headers"] = null;
       await loadTableData("Flota");
@@ -701,7 +763,7 @@
       const registroModificado = [
         Number(formData.idflota),
         formData.tipoflota || "",
-        formData.patenteflota || "",
+        (formData.patenteflota || "").toUpperCase(),
         formData.nrochasisflota || "",
         formData.marcaflota || "",
         formData.modeloflota || "",
@@ -1617,17 +1679,36 @@
         '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
 
       try {
-        const formData = getFormData("formEditarSemirremolque");
+        // Recolección manual de campos
+        const id = document.getElementById("editarIdSemirremolque").value;
+        const patente = document
+          .getElementById("editarPatenteSemirremolque")
+          .value.trim()
+          .toUpperCase(); // 🔥 AQUÍ va el cambio correcto
+        const genset = document
+          .getElementById("editarNroGensetSemirremolque")
+          .value.trim();
+        const tipo = document.getElementById("editarTipoSemirremolque").value;
+        const año = document.getElementById("editarAñoSemirremolque").value;
+        const estado = document.getElementById(
+          "editarEstadoSemirremolque"
+        ).value;
+        const asignado = document.getElementById(
+          "editarAsignadoChoferSemirremolque"
+        ).value;
+        const observaciones = document.getElementById(
+          "editarObservacionesSemirremolque"
+        ).value;
 
         const registroModificado = [
-          Number(formData.idsemirremolque),
-          formData.patentesemirremolque || "",
-          formData.nrogensetsemirremolque || "",
-          formData.tiposemirremolque || "",
-          formData.añosemirremolque || "",
-          formData.estadosemirremolque || "",
-          formData.asignadochofersemirremolque || "",
-          formData.observacionessemirremolque || "",
+          Number(id),
+          patente,
+          genset,
+          tipo,
+          año,
+          estado,
+          asignado,
+          observaciones,
         ];
 
         const resultado = await runGoogleFunction(
@@ -1649,12 +1730,9 @@
             showConfirmButton: false,
           });
 
-          // 🔥 ACTUALIZAR correctamente:
-          if (dataTableInstance) {
-            dataTableInstance.destroy();
-            document.getElementById("tablaPrueba").innerHTML = "";
-          }
-          datosSemirremolques = []; // limpiar cache si tienes esta variable
+          // Refrescar tabla y limpiar caché
+          cacheDatosPorModulo["Semirremolque"] = null;
+          cacheDatosPorModulo["Semirremolque_headers"] = null;
           await loadTableData("Semirremolque");
         } else {
           throw new Error("No se pudo actualizar el registro");
@@ -1688,13 +1766,19 @@
         }
 
         const formData = getFormData("formAgregarSemirremolque");
+
+        // ✅ Normalizar la patente a mayúsculas
+        const patenteNormalizada = (
+          formData.patentesemirremolque || ""
+        ).toUpperCase();
+
         const idSemirremolque = await runGoogleFunction(
           "generarIdSemirremolque"
         );
 
         const registro = [
           idSemirremolque,
-          formData.patentesemirremolque || "",
+          patenteNormalizada, // 👈 Aquí aplicamos la patente en mayúscula
           String(formData.nrogensetsemirremolque || ""),
           formData.tiposemirremolque || "",
           formData.añosemirremolque || "",
@@ -2258,4 +2342,892 @@
 
     return isValid;
   }
+
+  //------------------------------
+  // Módulo Poliza
+  //------------------------------
+
+  let modoRenovacion = false;
+
+  function calcularEstadoPoliza(fechaHasta) {
+    const hoy = new Date();
+    const hasta = new Date(fechaHasta);
+    const diferencia = Math.ceil((hasta - hoy) / (1000 * 60 * 60 * 24));
+
+    if (diferencia > 30) return "vigente";
+    if (diferencia > 0 && diferencia <= 30) return "por vencer";
+    return "vencida";
+  }
+
+  async function cargarPatentesPorTipo() {
+    const tipo = document.getElementById("inputTipoPoliza").value;
+    const selectPatente = document.getElementById("inputPatentePoliza");
+    selectPatente.innerHTML = '<option value="">Cargando patentes...</option>';
+
+    let datos = [];
+
+    if (tipo === "Camión") {
+      const { datos: flota } = await runGoogleFunction("getData", "Flota");
+      datos = flota.map((row) => row[2]); // patente está en la columna 2
+    } else if (tipo === "Semirremolque") {
+      const { datos: semi } = await runGoogleFunction(
+        "getData",
+        "Semirremolque"
+      );
+      datos = semi.map((row) => row[1]); // patente en columna 1
+    }
+
+    selectPatente.innerHTML = '<option value="">Seleccione</option>';
+    datos.forEach((patente) => {
+      const opt = document.createElement("option");
+      opt.value = patente;
+      opt.textContent = patente;
+      selectPatente.appendChild(opt);
+    });
+  }
+
+  function calcularDiasRestantes(fechaHasta) {
+    if (!fechaHasta) return "-";
+    const hoy = new Date();
+    const hasta = new Date(fechaHasta);
+    const diferencia = Math.ceil((hasta - hoy) / (1000 * 60 * 60 * 24));
+    return diferencia;
+  }
+
+  function determinarEstadoPoliza(dias) {
+    if (dias > 30) return "vigente";
+    if (dias > 0) return "por vencer";
+    return "vencida";
+  }
+
+  //Botón Guardar Nueva Poliza
+  document.getElementById("btnGuardarPoliza").onclick = async function () {
+    const btn = this;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
+
+    try {
+      if (!validarFormularioAgregarPoliza()) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        return;
+      }
+      const formData = getFormData("formAgregarPoliza");
+      const idPoliza = await runGoogleFunction("generarIdPoliza");
+
+      // 🔵 Función para formatear fecha a dd-mm-yyyy
+      const formatearFecha = (fechaISO) => {
+        if (!fechaISO || !fechaISO.includes("-")) return "";
+        const [anio, mes, dia] = fechaISO.split("-");
+        return `${dia.padStart(2, "0")}-${mes.padStart(2, "0")}-${anio}`;
+      };
+
+      const estadoCalculado = calcularEstadoPoliza(
+        formData.vigenciahastapoliza
+      );
+      const diasRestantes = Math.ceil(
+        (new Date(formData.vigenciahastapoliza) - new Date()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      const registro = [
+        idPoliza,
+        formData.tipopoliza || "",
+        formData.patentepoliza || "",
+        formData.aseguradorapoliza || "",
+        formData.codigopoliza || "",
+        formatearFecha(formData.vigenciadesdepoliza),
+        formatearFecha(formData.vigenciahastapoliza),
+        formData.importepagadopoliza || "",
+        formatearFecha(formData.fechapagopoliza),
+        estadoCalculado,
+        formData.observacionespoliza || "",
+        diasRestantes,
+        formData.urlpoliza || "",
+      ];
+
+      await runGoogleFunction("agregarRegistroPoliza", registro);
+
+      // ✅ Si estamos renovando una póliza existente, marcarla como 'renovada'
+      const form = document.getElementById("formAgregarPoliza");
+      const idOriginal = form.getAttribute("data-renovar-id");
+      if (idOriginal) {
+        await runGoogleFunction("actualizarEstadoPolizaRenovada", idOriginal);
+        form.removeAttribute("data-renovar-id");
+      }
+
+      $("#modalAgregarPoliza").modal("hide");
+
+      await Swal.fire({
+        icon: "success",
+        title: "Guardado",
+        text: "La póliza se ha guardado correctamente",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      cacheDatosPorModulo["Polizas"] = null;
+      cacheDatosPorModulo["Polizas_headers"] = null;
+      await loadTableData("Polizas");
+      crearFiltrosPolizas();
+    } catch (error) {
+      console.error("❌ Error al guardar póliza:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "Error al guardar póliza",
+      });
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  };
+
+  function getPolizasColumnDefs(headers) {
+    const columnDefs = [];
+
+    // 🔵 Estado (columna 9) - badge estilo Flota
+    columnDefs.push({
+      targets: 9, // Columna Estado
+      render: function (data) {
+        const estado = (data || "").toLowerCase();
+        let badgeClass = "";
+
+        switch (estado) {
+          case "vigente":
+            badgeClass = "estado-disponible badge-estado-flota";
+            break;
+          case "por vencer":
+            badgeClass = "estado-mantencion badge-estado-flota";
+            break;
+          case "vencida":
+            badgeClass = "estado-robado badge-estado-flota";
+            break;
+          case "renovada":
+            badgeClass = "bg-secondary text-white"; // 👈 Etiqueta gris
+            break;
+          default:
+            badgeClass = "badge-estado-flota";
+        }
+
+        return `<span class="badge ${badgeClass}">${data}</span>`;
+      },
+    });
+
+    // 🔵 Días por vencer (columna 11) - sin estilos adicionales
+    columnDefs.push({
+      targets: 11,
+      render: function (data) {
+        const dias = parseInt(data, 10);
+        return isNaN(dias) ? data : `${dias} días`;
+      },
+    });
+
+    // 🔵 Importe Pagado CLP (columna 7)
+    columnDefs.push({
+      targets: 7,
+      render: function (data) {
+        const num = Number(data);
+        return isNaN(num) ? data : `CLP $${num.toLocaleString("es-CL")}`;
+      },
+    });
+
+    // 🔵 Botones (última columna)
+    columnDefs.push({
+      targets: -1,
+      orderable: false,
+      render: (data, type, row) => {
+        const estado = (row[9] || "").toLowerCase(); // Columna estado
+        const mostrarRenovar = estado !== "renovada";
+
+        return `
+      <div class="d-flex justify-content-center gap-1">
+        <button class="btn btn-sm btn-warning btn-editar-poliza" data-id="${
+          row[0]
+        }" title="Editar">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="btn btn-sm btn-danger btn-borrar-poliza" data-id="${
+          row[0]
+        }" title="Eliminar">
+          <i class="bi bi-trash"></i>
+        </button>
+        ${
+          mostrarRenovar
+            ? `<button class="btn btn-sm btn-info btn-renovar-poliza" data-id="${row[0]}" title="Renovar">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>`
+            : ""
+        }
+      </div>
+    `;
+      },
+    });
+
+    return columnDefs;
+  }
+
+  //Actualizar Patentes Camion, Vehículo, Semirremolque
+  async function actualizarOpcionesPatente() {
+    const tipo = document.getElementById("inputTipoPoliza").value;
+    const selectPatente = document.getElementById("inputPatentePoliza");
+
+    // 🔁 Limpiar opciones anteriores
+    selectPatente.innerHTML =
+      '<option value="">Seleccione una patente</option>';
+
+    if (!tipo) return;
+
+    let datos = [];
+    let columnaPatente = 2; // Default para Flota
+
+    try {
+      if (tipo === "Camión" || tipo === "Vehículo") {
+        const { datos: datosFlota } = await runGoogleFunction(
+          "getData",
+          "Flota"
+        );
+        columnaPatente = 2; // Patente en columna 2
+        datos = datosFlota.filter((row) =>
+          tipo === "Camión"
+            ? row[1]?.toLowerCase().includes("camión")
+            : row[1]?.toLowerCase().includes("vehículo")
+        );
+      } else if (tipo === "Semirremolque") {
+        const { datos: datosSemi } = await runGoogleFunction(
+          "getData",
+          "Semirremolque"
+        );
+        columnaPatente = 1; // Patente en columna 1 en hoja Semirremolque
+        datos = datosSemi;
+      }
+
+      // ✅ Agregar opciones sin duplicados
+      const patentesUnicas = new Set();
+      datos.forEach((row) => {
+        const patente = row[columnaPatente]?.toUpperCase();
+        if (patente && !patentesUnicas.has(patente)) {
+          patentesUnicas.add(patente);
+          const option = document.createElement("option");
+          option.value = patente;
+          option.textContent = patente;
+          selectPatente.appendChild(option);
+        }
+      });
+    } catch (error) {
+      console.error("❌ Error al cargar patentes:", error);
+      Swal.fire("Error", "No se pudieron cargar las patentes", "error");
+    }
+  }
+
+  //Botones Editar - Eliminar - Renovar Poliza
+  function setupBotonesPoliza() {
+    // Botón EDITAR
+    $(document)
+      .off("click", ".btn-editar-poliza")
+      .on("click", ".btn-editar-poliza", async function () {
+        const id = $(this).data("id");
+
+        try {
+          const modal = new bootstrap.Modal(
+            document.getElementById("modalEditarPoliza")
+          );
+          modal.show();
+
+          document
+            .getElementById("spinnerEditarPoliza")
+            .classList.remove("d-none");
+          document
+            .getElementById("contenidoEditarPoliza")
+            .classList.add("d-none");
+
+          const registro = await runGoogleFunction("obtenerRegistroPoliza", id);
+          if (!registro) {
+            Swal.fire("Error", "No se encontró la póliza.", "error");
+            return;
+          }
+
+          await llenarModalEditarPoliza(registro);
+
+          document
+            .getElementById("spinnerEditarPoliza")
+            .classList.add("d-none");
+          document
+            .getElementById("contenidoEditarPoliza")
+            .classList.remove("d-none");
+        } catch (error) {
+          console.error("Error al cargar póliza:", error);
+          Swal.fire("Error", "No se pudo cargar la póliza.", "error");
+        }
+      });
+
+    // Botón BORRAR
+    $(document)
+      .off("click", ".btn-borrar-poliza")
+      .on("click", ".btn-borrar-poliza", async function () {
+        const id = $(this).data("id");
+
+        const confirmacion = await Swal.fire({
+          title: "¿Estás seguro?",
+          text: `Se eliminará la póliza con ID: ${id}`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#dc3545",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Sí, borrar",
+          cancelButtonText: "Cancelar",
+        });
+
+        if (confirmacion.isConfirmed) {
+          try {
+            await runGoogleFunction("borrarRegistroPoliza", id);
+            await Swal.fire("¡Eliminada!", "La póliza fue borrada.", "success");
+            cacheDatosPorModulo["Polizas"] = null;
+            cacheDatosPorModulo["Polizas_headers"] = null;
+            await loadTableData("Polizas");
+            crearFiltrosPolizas();
+          } catch (error) {
+            console.error("Error al borrar póliza:", error);
+            Swal.fire("Error", "No se pudo borrar la póliza.", "error");
+          }
+        }
+      });
+
+    // Botón RENOVAR
+    $(document)
+      .off("click", ".btn-renovar-poliza")
+      .on("click", ".btn-renovar-poliza", async function () {
+        const id = $(this).data("id");
+
+        try {
+          const original = await runGoogleFunction("obtenerRegistroPoliza", id);
+          if (!original) {
+            return Swal.fire("Error", "No se encontró la póliza", "error");
+          }
+
+          const modalAgregar = new bootstrap.Modal(
+            document.getElementById("modalAgregarPoliza")
+          );
+
+          document.getElementById("modalAgregarPolizaLabel").textContent =
+            "Renovar Póliza";
+          document.getElementById(
+            "btnGuardarPoliza"
+          ).innerHTML = `<i class="bi bi-arrow-repeat"></i> Guardar Renovación`;
+          document.getElementById("spinnerRenovarPoliza").style.display =
+            "block";
+          document.getElementById("contenidoFormularioPoliza").style.display =
+            "none";
+
+          modalAgregar.show();
+
+          $("#modalAgregarPoliza").one("shown.bs.modal", async () => {
+            const form = document.getElementById("formAgregarPoliza");
+            const inputTipo = document.getElementById("inputTipoPoliza");
+            const inputPatente = document.getElementById("inputPatentePoliza");
+
+            inputTipo.value = original[1];
+            inputTipo.disabled = true;
+
+            await actualizarOpcionesPatente();
+
+            await new Promise((resolve) => {
+              const maxTiempo = 3000;
+              const intervalo = 100;
+              let tiempo = 0;
+
+              const revisar = setInterval(() => {
+                const opciones = [...inputPatente.options].map(
+                  (opt) => opt.value
+                );
+                const existe = opciones.includes(original[2]);
+
+                if (existe) {
+                  inputPatente.value = original[2];
+                  inputPatente.disabled = true;
+                  clearInterval(revisar);
+                  resolve();
+                }
+
+                tiempo += intervalo;
+                if (tiempo >= maxTiempo) {
+                  console.warn("⚠️ Patente no encontrada en el select.");
+                  clearInterval(revisar);
+                  resolve();
+                }
+              }, intervalo);
+            });
+
+            form.querySelector('[name="inputAseguradoraPoliza"]').value =
+              original[3] || "";
+            form.querySelector('[name="inputCodigoPoliza"]').value =
+              original[4] || "";
+            form.querySelector('[name="inputImportePagadoPoliza"]').value = "";
+            form.querySelector('[name="inputFechaPagoPoliza"]').value = "";
+            form.querySelector('[name="inputObservacionesPoliza"]').value = "";
+            form.querySelector('[name="inputUrlPoliza"]').value = "";
+
+            const hoy = new Date();
+            const unAnioDespues = new Date();
+            unAnioDespues.setFullYear(hoy.getFullYear() + 1);
+            const formatoFecha = (d) => d.toISOString().split("T")[0];
+
+            form.querySelector('[name="inputVigenciaDesdePoliza"]').value =
+              formatoFecha(hoy);
+            form.querySelector('[name="inputVigenciaHastaPoliza"]').value =
+              formatoFecha(unAnioDespues);
+
+            form.setAttribute("data-renovar-id", id);
+
+            document.getElementById("spinnerRenovarPoliza").style.display =
+              "none";
+            document.getElementById("contenidoFormularioPoliza").style.display =
+              "flex";
+          });
+        } catch (error) {
+          console.error("❌ Error al renovar póliza:", error);
+          Swal.fire("Error", "No se pudo preparar la renovación", "error");
+        }
+      });
+
+    // Botón AGREGAR (modo normal)
+    const btnAgregar = document.getElementById("btnAbrirModalAgregarPoliza");
+    if (btnAgregar) {
+      btnAgregar.addEventListener("click", () => {
+        const form = document.getElementById("formAgregarPoliza");
+        const modal = new bootstrap.Modal(
+          document.getElementById("modalAgregarPoliza")
+        );
+
+        form.reset();
+        form.removeAttribute("data-renovar-id");
+
+        document.getElementById("modalAgregarPolizaLabel").textContent =
+          "Agregar Nueva Póliza";
+        document.getElementById(
+          "btnGuardarPoliza"
+        ).innerHTML = `<i class="bi bi-save"></i> Guardar Póliza`;
+
+        document.getElementById("inputTipoPoliza").disabled = false;
+        document.getElementById("inputPatentePoliza").disabled = false;
+
+        document.getElementById("spinnerRenovarPoliza").style.display = "none";
+        document.getElementById("contenidoFormularioPoliza").style.display =
+          "flex";
+
+        modal.show();
+      });
+    }
+
+    // 🔁 Al cerrar el modal manualmente, restaurar estado
+    $("#modalAgregarPoliza").on("hidden.bs.modal", () => {
+      const form = document.getElementById("formAgregarPoliza");
+      form.reset();
+      form.removeAttribute("data-renovar-id");
+
+      document.getElementById("modalAgregarPolizaLabel").textContent =
+        "Agregar Nueva Póliza";
+      document.getElementById(
+        "btnGuardarPoliza"
+      ).innerHTML = `<i class="bi bi-save"></i> Guardar Póliza`;
+
+      document.getElementById("inputTipoPoliza").disabled = false;
+      document.getElementById("inputPatentePoliza").disabled = false;
+
+      document.getElementById("spinnerRenovarPoliza").style.display = "none";
+      document.getElementById("contenidoFormularioPoliza").style.display =
+        "flex";
+    });
+  }
+
+  //LLenar modal Editar Poliza
+  async function llenarModalEditarPoliza(registro) {
+    document.getElementById("editarIdPoliza").value = registro[0];
+    document.getElementById("editarTipoPoliza").value = registro[1];
+
+    // 🔄 Cargar opciones de patente según tipo seleccionado
+    await actualizarOpcionesPatenteEditar();
+
+    // ✅ Asignar la patente después que el select se haya llenado
+    document.getElementById("editarPatentePoliza").value = registro[2] || "";
+
+    document.getElementById("editarAseguradoraPoliza").value = registro[3];
+    document.getElementById("editarCodigoPoliza").value = registro[4];
+    document.getElementById("editarVigenciaDesdePoliza").value =
+      formatearFechaParaInput(registro[5]);
+    document.getElementById("editarVigenciaHastaPoliza").value =
+      formatearFechaParaInput(registro[6]);
+    document.getElementById("editarImportePagadoPoliza").value = limpiarMoneda(
+      registro[7]
+    );
+    document.getElementById("editarFechaPagoPoliza").value =
+      formatearFechaParaInput(registro[8]);
+    document.getElementById("editarObservacionesPoliza").value =
+      registro[10] || "";
+    document.getElementById("editarUrlPoliza").value = registro[12] || "";
+  }
+
+  //Evento Botón Guardar Editar Poliza
+  document.getElementById("btnGuardarEditarPoliza").onclick =
+    async function () {
+      const btn = this;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML =
+        '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+
+      try {
+        const formData = getFormData("formEditarPoliza");
+
+        const estadoCalculado = calcularEstadoPoliza(
+          formData.vigenciahastapoliza
+        );
+        const diasRestantes = Math.ceil(
+          (new Date(formData.vigenciahastapoliza) - new Date()) /
+            (1000 * 60 * 60 * 24)
+        );
+
+        const registroModificado = [
+          Number(formData.idpoliza),
+          formData.tipopoliza || "",
+          formData.patentepoliza || "",
+          formData.aseguradorapoliza || "",
+          formData.codigopoliza || "",
+          formData.vigenciadesdepoliza || "",
+          formData.vigenciahastapoliza || "",
+          formData.importepagadopoliza || "",
+          formData.fechapagopoliza || "",
+          estadoCalculado,
+          formData.observacionespoliza || "",
+          diasRestantes,
+          formData.urlpoliza || "",
+        ];
+
+        const resultado = await runGoogleFunction(
+          "actualizarRegistroPoliza",
+          registroModificado
+        );
+
+        if (resultado === "success") {
+          const modal = bootstrap.Modal.getInstance(
+            document.getElementById("modalEditarPoliza")
+          );
+          modal.hide();
+
+          await Swal.fire({
+            icon: "success",
+            title: "Actualizado",
+            text: "La póliza fue actualizada correctamente",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          cacheDatosPorModulo["Polizas"] = null;
+          cacheDatosPorModulo["Polizas_headers"] = null;
+          await loadTableData("Polizas");
+          crearFiltrosPolizas();
+        } else {
+          throw new Error("No se pudo actualizar la póliza.");
+        }
+      } catch (error) {
+        console.error("Error al guardar cambios de póliza:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "Error al actualizar póliza.",
+        });
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    };
+
+  //Funcion para actualizar opciones Patente Editar
+  async function actualizarOpcionesPatenteEditar() {
+    const tipo = document.getElementById("editarTipoPoliza").value;
+    const select = document.getElementById("editarPatentePoliza");
+
+    // Limpiar opciones anteriores
+    select.innerHTML = '<option value="">Seleccione patente</option>';
+
+    if (!tipo) return;
+
+    let datos = [];
+    let indicePatente = 2; // valor por defecto (pero se actualiza según el tipo)
+
+    if (tipo === "Camión" || tipo === "Vehículo") {
+      const { datos: datosFlota } = await runGoogleFunction("getData", "Flota");
+      datos = datosFlota.filter((row) => {
+        const tipoUnidad = row[1]?.toLowerCase();
+        return tipo === "Camión"
+          ? tipoUnidad.includes("camión")
+          : tipoUnidad.includes("vehículo");
+      });
+      indicePatente = 2; // Patente está en la columna 2 de Flota
+    } else if (tipo === "Semirremolque") {
+      const { datos: datosSemi } = await runGoogleFunction(
+        "getData",
+        "Semirremolque"
+      );
+      datos = datosSemi;
+      indicePatente = 1; // ✅ Patente está en la columna 1 en Semirremolque
+    }
+
+    const patentesUnicas = [...new Set(datos.map((row) => row[indicePatente]))];
+
+    patentesUnicas.forEach((patente) => {
+      if (patente && patente.trim()) {
+        const option = document.createElement("option");
+        option.value = patente.trim();
+        option.textContent = patente.trim();
+        select.appendChild(option);
+      }
+    });
+  }
+
+  function validarFormularioAgregarPoliza() {
+    const form = document.getElementById("formAgregarPoliza");
+    let isValid = true;
+
+    // Lista de campos obligatorios por ID
+    const camposObligatorios = [
+      "inputTipoPoliza",
+      "inputPatentePoliza",
+      "inputAseguradoraPoliza",
+      "inputCodigoPoliza",
+      "inputVigenciaDesdePoliza",
+      "inputVigenciaHastaPoliza",
+    ];
+
+    // Validar los campos requeridos
+    camposObligatorios.forEach((id) => {
+      const field = document.getElementById(id);
+      if (!field.value.trim()) {
+        field.classList.add("is-invalid");
+        isValid = false;
+      } else {
+        field.classList.remove("is-invalid");
+      }
+    });
+
+    return isValid;
+  }
+
+  //Btn renovar poliza
+  // Btn renovar poliza
+  const btnRenovar = document.getElementById("btnRenovarPoliza");
+  if (btnRenovar) {
+    btnRenovar.addEventListener("click", async () => {
+      try {
+        modoRenovacion = true;
+
+        const formData = getFormData("formEditarPoliza");
+        const datosParaRenovar = {
+          tipopoliza: formData.tipopoliza,
+          patentepoliza: formData.patentepoliza,
+          aseguradorapoliza: formData.aseguradorapoliza,
+          codigopoliza: formData.codigopoliza,
+          vigenciadesdepoliza: "",
+          vigenciahastapoliza: "",
+          importepagadopoliza: "",
+          fechapagopoliza: "",
+          observacionespoliza: "",
+          urlpoliza: "",
+        };
+
+        const modalEditar = bootstrap.Modal.getInstance(
+          document.getElementById("modalEditarPoliza")
+        );
+        modalEditar.hide();
+
+        const modalAgregar = new bootstrap.Modal(
+          document.getElementById("modalAgregarPoliza")
+        );
+
+        // ✅ Cambiar texto en modo renovación
+        document.getElementById("modalAgregarPolizaLabel").textContent =
+          "Renovar Póliza";
+        document.getElementById(
+          "btnGuardarPoliza"
+        ).innerHTML = `<i class="bi bi-arrow-repeat"></i> Guardar Renovación`;
+
+        modalAgregar.show();
+
+        setTimeout(() => {
+          const hoy = new Date();
+          const yyyy = hoy.getFullYear();
+          const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+          const dd = String(hoy.getDate()).padStart(2, "0");
+          const fechaHoy = `${yyyy}-${mm}-${dd}`;
+
+          const unAnioDespues = new Date(hoy);
+          unAnioDespues.setFullYear(hoy.getFullYear() + 1);
+          const fechaFin = `${unAnioDespues.getFullYear()}-${String(
+            unAnioDespues.getMonth() + 1
+          ).padStart(2, "0")}-${String(unAnioDespues.getDate()).padStart(
+            2,
+            "0"
+          )}`;
+
+          document.getElementById("inputTipoPoliza").disabled = true;
+          document.getElementById("inputPatentePoliza").disabled = true;
+
+          Object.entries(datosParaRenovar).forEach(([key, value]) => {
+            const input = document.querySelector(
+              `#formAgregarPoliza [name="input${
+                key.charAt(0).toUpperCase() + key.slice(1)
+              }"]`
+            );
+            if (input) {
+              if (key === "vigenciadesdepoliza") input.value = fechaHoy;
+              else if (key === "vigenciahastapoliza") input.value = fechaFin;
+              else input.value = value;
+            }
+          });
+        }, 250);
+      } catch (error) {
+        console.error("❌ Error al preparar renovación:", error);
+        Swal.fire("Error", "No se pudo renovar la póliza", "error");
+      }
+    });
+  }
+
+  // 🔁 Restaurar texto del modal al cerrarlo
+  document
+    .getElementById("modalAgregarPoliza")
+    .addEventListener("hidden.bs.modal", () => {
+      if (modoRenovacion) {
+        document.getElementById("modalAgregarPolizaLabel").textContent =
+          "Agregar Nueva Póliza";
+        document.getElementById(
+          "btnGuardarPoliza"
+        ).innerHTML = `<i class="bi bi-save"></i> Guardar Póliza`;
+        modoRenovacion = false;
+      }
+    });
+
+  function crearFiltrosPolizas() {
+    const contenedor = document.getElementById("filtros-polizas");
+    const datos = cacheDatosPorModulo["Polizas"] || [];
+
+    // Contar estados
+    const conteo = {
+      vigente: 0,
+      "por vencer": 0,
+      vencida: 0,
+      renovada: 0,
+    };
+
+    datos.forEach((row) => {
+      const estado = (row[9] || "").toLowerCase(); // columna estado
+      if (conteo.hasOwnProperty(estado)) conteo[estado]++;
+    });
+
+    const total = datos.length;
+
+    contenedor.innerHTML = `
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <button id="btnFiltroPolizaTodos" class="btn btn-outline-primary btn-sm">Todas (${total})</button>
+      <button id="btnFiltroPolizaVigente" class="btn btn-outline-success btn-sm">Vigente (${conteo.vigente})</button>
+      <button id="btnFiltroPolizaPorVencer" class="btn btn-outline-warning btn-sm">Por Vencer (${conteo["por vencer"]})</button>
+      <button id="btnFiltroPolizaVencida" class="btn btn-outline-danger btn-sm">Vencida (${conteo.vencida})</button>
+      <button id="btnFiltroPolizaRenovada" class="btn btn-outline-secondary btn-sm">Renovada (${conteo.renovada})</button>
+    </div>
+  `;
+    contenedor.style.display = "flex";
+
+    // Event listeners para filtros
+    document.getElementById("btnFiltroPolizaTodos").onclick = () =>
+      aplicarFiltroPoliza("");
+    document.getElementById("btnFiltroPolizaVigente").onclick = () =>
+      aplicarFiltroPoliza("vigente");
+    document.getElementById("btnFiltroPolizaPorVencer").onclick = () =>
+      aplicarFiltroPoliza("por vencer");
+    document.getElementById("btnFiltroPolizaVencida").onclick = () =>
+      aplicarFiltroPoliza("vencida");
+    document.getElementById("btnFiltroPolizaRenovada").onclick = () =>
+      aplicarFiltroPoliza("renovada");
+  }
+
+  function aplicarFiltroPoliza(estado) {
+    const tabla = $("#tablaPrueba").DataTable();
+    const columnaEstado = 9; // Ajusta si cambia
+
+    tabla.column(columnaEstado).search(estado, true, false).draw();
+  }
+
+  //------------------------------
+  // Módulo Viajes
+  //------------------------------
+
+// Agregar Nuevo Viaje
+
+document.getElementById("btnGuardarViaje").onclick = async function () {
+  const btn = this;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
+
+  try {
+    const form = document.getElementById("formAgregarViaje");
+
+    if (!form.checkValidity()) {
+      form.classList.add("was-validated");
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      return;
+    }
+
+    const formData = getFormData("formAgregarViaje");
+
+    // 🔢 Obtener ID (V001, V002...)
+    const numero = await runGoogleFunction("generarIdViaje");
+    const idViaje = `V${numero.toString().padStart(3, "0")}`;
+
+    // 📦 Estado: si no tiene fecha de llegada, está en ruta
+    const estado = formData.fechallegadaviaje ? "realizado" : "en ruta";
+
+    const registro = [
+      idViaje,
+      formData.fechasalidaviaje || "",
+      formData.fechallegadaviaje || "",
+      formData.tipoviaje || "",
+      formData.clienteviaje || "",
+      formData.origenviaje || "",
+      formData.destinoviaje || "",
+      formData.empresaviaje || "",
+      formData.conductorviaje || "",
+      (formData.contenedorviaje || "").toUpperCase(),
+      formData.guiaviaje || "",
+      formData.facturaviaje || "",
+      estado
+    ];
+
+    await runGoogleFunction("agregarRegistroViaje", registro);
+
+    const modal = bootstrap.Modal.getInstance(
+      document.getElementById("modalAgregarViaje")
+    );
+    modal.hide();
+
+    await Swal.fire({
+      icon: "success",
+      title: "Guardado",
+      text: "El viaje fue registrado correctamente.",
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    cacheDatosPorModulo["Viajes"] = null;
+    cacheDatosPorModulo["Viajes_headers"] = null;
+    await loadTableData("Viajes");
+  } catch (error) {
+    console.error("❌ Error al guardar viaje:", error);
+    Swal.fire("Error", "No se pudo guardar el viaje", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+};
 </script>

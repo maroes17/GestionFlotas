@@ -35,18 +35,21 @@
             </button>
           </li>
           <li class="sidebar-item">
-            <button class="sidebar-link">
-              <i class="bi bi-globe-americas"></i>
-
-              <span>Viajes</span>
-            </button>
-          </li>
-
-          <li class="sidebar-item">
             <button id="choferesBtn" class="sidebar-link">
               <i class="bi bi-person-vcard"></i>
-
               <span>Choferes</span>
+            </button>
+          </li>
+          <li class="sidebar-item">
+            <button id="polizasBtn" class="sidebar-link">
+              <i class="bi bi-shield-check"></i>
+              <span>Pólizas</span>
+            </button>
+          </li>
+          <li class="sidebar-item">
+            <button id="viajesBtn" class="sidebar-link">
+              <i class="bi bi-truck-front-fill"></i>
+              <span>Viajes</span>
             </button>
           </li>
         </ul>
@@ -88,6 +91,14 @@
           <div id="cards-choferes" class="row g-3 mb-4" style="display: none">
             <!-- Aquí JS generará dinámicamente las cards -->
           </div>
+          <!-- Contenedor dinámico para Filtros de Pólizas -->
+          <div
+            id="filtros-polizas"
+            class="d-flex justify-content-center mb-4 gap-2"
+            style="display: none"
+          >
+            <!-- JS insertará los botones aquí -->
+          </div>
 
           <table
             id="tablaPrueba"
@@ -105,7 +116,6 @@
     </div>
 
     <!-- Modal Boton Agregar Flota -->
-
     <div
       class="modal fade"
       id="modalAgregarFlota"
@@ -1108,83 +1118,948 @@
     </div>
 
     <!-- Modal Editar Semirremolque -->
-<div class="modal fade" id="modalEditarSemirremolque" tabindex="-1" aria-labelledby="modalEditarSemirremolqueLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <form id="formEditarSemirremolque">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="modalEditarSemirremolqueLabel">Editar Semirremolque</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+    <div
+      class="modal fade"
+      id="modalEditarSemirremolque"
+      tabindex="-1"
+      aria-labelledby="modalEditarSemirremolqueLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <form id="formEditarSemirremolque">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="modalEditarSemirremolqueLabel">
+                Editar Semirremolque
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <input type="hidden" id="editarIdSemirremolque" />
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="editarPatenteSemirremolque" class="form-label"
+                    >Patente</label
+                  >
+                  <input
+                    type="text"
+                    id="editarPatenteSemirremolque"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarNroGensetSemirremolque" class="form-label"
+                    >N° Genset</label
+                  >
+                  <input
+                    type="text"
+                    id="editarNroGensetSemirremolque"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarTipoSemirremolque" class="form-label"
+                    >Tipo</label
+                  >
+                  <select
+                    id="editarTipoSemirremolque"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione tipo</option>
+                    <option value="Chasis Portacontenedor">
+                      Chasis Portacontenedor
+                    </option>
+                    <option value="Frigorífico">Frigorífico</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarAñoSemirremolque" class="form-label"
+                    >Año</label
+                  >
+                  <input
+                    type="number"
+                    id="editarAñoSemirremolque"
+                    class="form-control"
+                    min="1990"
+                    max="2100"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarEstadoSemirremolque" class="form-label"
+                    >Estado</label
+                  >
+                  <select
+                    id="editarEstadoSemirremolque"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione estado</option>
+                    <option value="Disponible">Disponible</option>
+                    <option value="Mantención">Mantención</option>
+                    <option value="Siniestro">Siniestro</option>
+                    <option value="Robado">Robado</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label
+                    for="editarAsignadoChoferSemirremolque"
+                    class="form-label"
+                    >Asignado a Chofer</label
+                  >
+                  <select
+                    id="editarAsignadoChoferSemirremolque"
+                    class="form-select"
+                  >
+                    <option value="">Seleccione chofer</option>
+                    <!-- Se cargará dinámicamente -->
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <label
+                    for="editarObservacionesSemirremolque"
+                    class="form-label"
+                    >Observaciones</label
+                  >
+                  <textarea
+                    id="editarObservacionesSemirremolque"
+                    class="form-control"
+                    rows="2"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                id="btnGuardarEditarSemirremolque"
+              >
+                <i class="bi bi-save"></i> Guardar Cambios
+              </button>
+            </div>
+          </form>
         </div>
-
-        <div class="modal-body">
-          <input type="hidden" id="editarIdSemirremolque" />
-
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label for="editarPatenteSemirremolque" class="form-label">Patente</label>
-              <input type="text" id="editarPatenteSemirremolque" class="form-control" required />
-            </div>
-
-            <div class="col-md-6">
-              <label for="editarNroGensetSemirremolque" class="form-label">N° Genset</label>
-              <input type="text" id="editarNroGensetSemirremolque" class="form-control" />
-            </div>
-
-            <div class="col-md-6">
-              <label for="editarTipoSemirremolque" class="form-label">Tipo</label>
-              <select id="editarTipoSemirremolque" class="form-select" required>
-                <option value="">Seleccione tipo</option>
-                <option value="Chasis Portacontenedor">Chasis Portacontenedor</option>
-                <option value="Frigorífico">Frigorífico</option>
-              </select>
-            </div>
-
-            <div class="col-md-6">
-              <label for="editarAñoSemirremolque" class="form-label">Año</label>
-              <input type="number" id="editarAñoSemirremolque" class="form-control" min="1990" max="2100" required />
-            </div>
-
-            <div class="col-md-6">
-              <label for="editarEstadoSemirremolque" class="form-label">Estado</label>
-              <select id="editarEstadoSemirremolque" class="form-select" required>
-                <option value="">Seleccione estado</option>
-                <option value="Disponible">Disponible</option>
-                <option value="Mantención">Mantención</option>
-                <option value="Siniestro">Siniestro</option>
-                <option value="Robado">Robado</option>
-              </select>
-            </div>
-
-            <div class="col-md-6">
-              <label for="editarAsignadoChoferSemirremolque" class="form-label">Asignado a Chofer</label>
-              <select id="editarAsignadoChoferSemirremolque" class="form-select">
-                <option value="">Seleccione chofer</option>
-                <!-- Se cargará dinámicamente -->
-              </select>
-            </div>
-
-            <div class="col-12">
-              <label for="editarObservacionesSemirremolque" class="form-label">Observaciones</label>
-              <textarea id="editarObservacionesSemirremolque" class="form-control" rows="2"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary btn-sm" id="btnGuardarEditarSemirremolque">
-            <i class="bi bi-save"></i> Guardar Cambios
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
-  </div>
-</div>
 
-    <!-- Modal Agregar Semirremolque -->
+    <!-- Modal Agregar Poliza -->
+    <div
+      class="modal fade"
+      id="modalAgregarPoliza"
+      tabindex="-1"
+      aria-labelledby="modalAgregarPolizaLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="formAgregarPoliza">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalAgregarPolizaLabel">
+                Agregar Nueva Póliza
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
 
+            <div class="modal-body">
+              <!-- Spinner de carga -->
+              <div
+                id="spinnerRenovarPoliza"
+                class="text-center my-4"
+                style="display: none"
+              >
+                <div
+                  class="spinner-border text-primary"
+                  role="status"
+                  style="width: 3rem; height: 3rem"
+                >
+                  <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-3">Cargando datos de la póliza...</p>
+              </div>
 
+              <!-- Contenido principal del formulario -->
+              <div class="row g-3" id="contenidoFormularioPoliza">
+                <div class="col-md-4">
+                  <label for="inputTipoPoliza" class="form-label"
+                    >Tipo de Póliza</label
+                  >
+                  <select
+                    id="inputTipoPoliza"
+                    name="inputTipoPoliza"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione tipo</option>
+                    <option value="Camión">Camión</option>
+                    <option value="Vehículo">Vehículo</option>
+                    <option value="Semirremolque">Semirremolque</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="inputPatentePoliza" class="form-label"
+                    >Patente</label
+                  >
+                  <select
+                    id="inputPatentePoliza"
+                    name="inputPatentePoliza"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione tipo primero</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="inputAseguradoraPoliza" class="form-label"
+                    >Aseguradora</label
+                  >
+                  <select
+                    id="inputAseguradoraPoliza"
+                    name="inputAseguradoraPoliza"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="HDI">HDI</option>
+                    <option value="Mafre">Mafre</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="inputCodigoPoliza" class="form-label"
+                    >Código Póliza</label
+                  >
+                  <input
+                    type="text"
+                    id="inputCodigoPoliza"
+                    name="inputCodigoPoliza"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-3">
+                  <label for="inputVigenciaDesdePoliza" class="form-label"
+                    >Vigencia Desde</label
+                  >
+                  <input
+                    type="date"
+                    id="inputVigenciaDesdePoliza"
+                    name="inputVigenciaDesdePoliza"
+                    class="form-control"
+                    required
+                  />
+                </div>
+                <div class="col-md-3">
+                  <label for="inputVigenciaHastaPoliza" class="form-label"
+                    >Vigencia Hasta</label
+                  >
+                  <input
+                    type="date"
+                    id="inputVigenciaHastaPoliza"
+                    name="inputVigenciaHastaPoliza"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="inputImportePagadoPoliza" class="form-label"
+                    >Importe Pagado (CLP)</label
+                  >
+                  <input
+                    type="number"
+                    id="inputImportePagadoPoliza"
+                    name="inputImportePagadoPoliza"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="inputFechaPagoPoliza" class="form-label"
+                    >Fecha de Pago</label
+                  >
+                  <input
+                    type="date"
+                    id="inputFechaPagoPoliza"
+                    name="inputFechaPagoPoliza"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label for="inputUrlPoliza" class="form-label"
+                    >URL Archivo Póliza</label
+                  >
+                  <input
+                    type="url"
+                    id="inputUrlPoliza"
+                    name="inputUrlPoliza"
+                    class="form-control"
+                    placeholder="https://drive.google.com/..."
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label for="inputObservacionesPoliza" class="form-label"
+                    >Observaciones</label
+                  >
+                  <textarea
+                    id="inputObservacionesPoliza"
+                    name="inputObservacionesPoliza"
+                    class="form-control"
+                    rows="2"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                id="btnGuardarPoliza"
+                class="btn btn-primary"
+              >
+                <i class="bi bi-save"></i> Guardar Póliza
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Editar Poliza -->
+    <div
+      class="modal fade"
+      id="modalEditarPoliza"
+      tabindex="-1"
+      aria-labelledby="modalEditarPolizaLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="formEditarPoliza">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalEditarPolizaLabel">
+                Editar Póliza
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <!-- 🔄 Spinner de carga -->
+              <div id="spinnerEditarPoliza" class="text-center py-5 d-none">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Cargando datos de la póliza...</p>
+              </div>
+
+              <!-- ✅ Contenido del formulario -->
+              <div id="contenidoEditarPoliza" class="row g-3">
+                <input type="hidden" id="editarIdPoliza" name="idpoliza" />
+
+                <div class="col-md-4">
+                  <label for="editarTipoPoliza" class="form-label"
+                    >Tipo de Póliza</label
+                  >
+                  <select
+                    id="editarTipoPoliza"
+                    name="tipopoliza"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione tipo</option>
+                    <option value="Camión">Camión</option>
+                    <option value="Vehículo">Vehículo</option>
+                    <option value="Semirremolque">Semirremolque</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="editarPatentePoliza" class="form-label"
+                    >Patente</label
+                  >
+                  <select
+                    id="editarPatentePoliza"
+                    name="patentepoliza"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione tipo primero</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="editarAseguradoraPoliza" class="form-label"
+                    >Aseguradora</label
+                  >
+                  <select
+                    id="editarAseguradoraPoliza"
+                    name="aseguradorapoliza"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="HDI">HDI</option>
+                    <option value="Mafre">Mafre</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarCodigoPoliza" class="form-label"
+                    >Código Póliza</label
+                  >
+                  <input
+                    type="text"
+                    id="editarCodigoPoliza"
+                    name="codigopoliza"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-3">
+                  <label for="editarVigenciaDesdePoliza" class="form-label"
+                    >Vigencia Desde</label
+                  >
+                  <input
+                    type="date"
+                    id="editarVigenciaDesdePoliza"
+                    name="vigenciadesdepoliza"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-3">
+                  <label for="editarVigenciaHastaPoliza" class="form-label"
+                    >Vigencia Hasta</label
+                  >
+                  <input
+                    type="date"
+                    id="editarVigenciaHastaPoliza"
+                    name="vigenciahastapoliza"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarImportePagadoPoliza" class="form-label"
+                    >Importe Pagado (CLP)</label
+                  >
+                  <input
+                    type="number"
+                    id="editarImportePagadoPoliza"
+                    name="importepagadopoliza"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarFechaPagoPoliza" class="form-label"
+                    >Fecha de Pago</label
+                  >
+                  <input
+                    type="date"
+                    id="editarFechaPagoPoliza"
+                    name="fechapagopoliza"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label for="editarUrlPoliza" class="form-label"
+                    >URL Archivo Póliza</label
+                  >
+                  <input
+                    type="url"
+                    id="editarUrlPoliza"
+                    name="urlpoliza"
+                    class="form-control"
+                    placeholder="https://drive.google.com/..."
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label for="editarObservacionesPoliza" class="form-label"
+                    >Observaciones</label
+                  >
+                  <textarea
+                    id="editarObservacionesPoliza"
+                    name="observacionespoliza"
+                    class="form-control"
+                    rows="2"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                id="btnGuardarEditarPoliza"
+                class="btn btn-primary"
+              >
+                <i class="bi bi-save"></i> Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Agregar Viaje -->
+    <div
+      class="modal fade"
+      id="modalAgregarViaje"
+      tabindex="-1"
+      aria-labelledby="modalAgregarViajeLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="formAgregarViaje">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalAgregarViajeLabel">
+                Agregar Nuevo Viaje
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <div class="row g-3">
+                <!-- Fecha Salida -->
+                <div class="col-md-6">
+                  <label for="inputFechaSalidaViaje" class="form-label"
+                    >Fecha de Salida</label
+                  >
+                  <input
+                    type="date"
+                    id="inputFechaSalidaViaje"
+                    name="fechasalidaviaje"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <!-- Fecha Llegada -->
+                <div class="col-md-6">
+                  <label for="inputFechaLlegadaViaje" class="form-label"
+                    >Fecha de Llegada</label
+                  >
+                  <input
+                    type="date"
+                    id="inputFechaLlegadaViaje"
+                    name="fechallegadaviaje"
+                    class="form-control"
+                  />
+                </div>
+
+                <!-- Tipo -->
+                <div class="col-md-4">
+                  <label for="inputTipoViaje" class="form-label">Tipo</label>
+                  <select
+                    id="inputTipoViaje"
+                    name="tipoviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="1x40">1x40</option>
+                    <option value="1x20">1x20</option>
+                    <option value="2x20">2x20</option>
+                  </select>
+                </div>
+
+                <!-- Cliente -->
+                <div class="col-md-4">
+                  <label for="inputClienteViaje" class="form-label"
+                    >Cliente</label
+                  >
+                  <select
+                    id="inputClienteViaje"
+                    name="clienteviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <!-- Dinámico desde hoja Clientes -->
+                  </select>
+                </div>
+
+                <!-- Empresa -->
+                <div class="col-md-4">
+                  <label for="inputEmpresaViaje" class="form-label"
+                    >Empresa</label
+                  >
+                  <select
+                    id="inputEmpresaViaje"
+                    name="empresaviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <!-- Dinámico desde hoja Empresa -->
+                  </select>
+                </div>
+
+                <!-- Origen -->
+                <div class="col-md-6">
+                  <label for="inputOrigenViaje" class="form-label"
+                    >Origen</label
+                  >
+                  <select
+                    id="inputOrigenViaje"
+                    name="origenviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <!-- Dinámico desde hoja Ubicaciones -->
+                  </select>
+                </div>
+
+                <!-- Destino -->
+                <div class="col-md-6">
+                  <label for="inputDestinoViaje" class="form-label"
+                    >Destino</label
+                  >
+                  <select
+                    id="inputDestinoViaje"
+                    name="destinoviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <!-- Dinámico desde hoja Ubicaciones -->
+                  </select>
+                </div>
+
+                <!-- Conductor -->
+                <div class="col-md-6">
+                  <label for="inputConductorViaje" class="form-label"
+                    >Conductor</label
+                  >
+                  <select
+                    id="inputConductorViaje"
+                    name="conductorviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <!-- Dinámico desde hoja Choferes filtrando "Disponible" -->
+                  </select>
+                </div>
+
+                <!-- Contenedor -->
+                <div class="col-md-6">
+                  <label for="inputContenedorViaje" class="form-label"
+                    >Contenedor</label
+                  >
+                  <input
+                    type="text"
+                    id="inputContenedorViaje"
+                    name="contenedorviaje"
+                    class="form-control text-uppercase"
+                    required
+                  />
+                </div>
+
+                <!-- N° Guía -->
+                <div class="col-md-6">
+                  <label for="inputGuiaViaje" class="form-label">N° Guía</label>
+                  <input
+                    type="text"
+                    id="inputGuiaViaje"
+                    name="guiaviaje"
+                    class="form-control"
+                  />
+                </div>
+
+                <!-- Factura -->
+                <div class="col-md-6">
+                  <label for="inputFacturaViaje" class="form-label"
+                    >Factura</label
+                  >
+                  <input
+                    type="text"
+                    id="inputFacturaViaje"
+                    name="facturaviaje"
+                    class="form-control"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                id="btnGuardarViaje"
+                class="btn btn-primary"
+              >
+                <i class="bi bi-save"></i> Guardar Viaje
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Editar Viaje -->
+    <div
+      class="modal fade"
+      id="modalEditarViaje"
+      tabindex="-1"
+      aria-labelledby="modalEditarViajeLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="formEditarViaje">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalEditarViajeLabel">
+                Editar Viaje
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <input type="hidden" id="editarIdViaje" name="idviaje" />
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="editarFechaSalidaViaje" class="form-label"
+                    >Fecha de Salida</label
+                  >
+                  <input
+                    type="date"
+                    id="editarFechaSalidaViaje"
+                    name="fechasalidaviaje"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarFechaLlegadaViaje" class="form-label"
+                    >Fecha de Llegada</label
+                  >
+                  <input
+                    type="date"
+                    id="editarFechaLlegadaViaje"
+                    name="fechallegadaviaje"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-md-4">
+                  <label for="editarTipoViaje" class="form-label">Tipo</label>
+                  <select
+                    id="editarTipoViaje"
+                    name="tipoviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="1x40">1x40</option>
+                    <option value="1x20">1x20</option>
+                    <option value="2x20">2x20</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="editarClienteViaje" class="form-label"
+                    >Cliente</label
+                  >
+                  <select
+                    id="editarClienteViaje"
+                    name="clienteviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="editarEmpresaViaje" class="form-label"
+                    >Empresa</label
+                  >
+                  <select
+                    id="editarEmpresaViaje"
+                    name="empresaviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarOrigenViaje" class="form-label"
+                    >Origen</label
+                  >
+                  <select
+                    id="editarOrigenViaje"
+                    name="origenviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarDestinoViaje" class="form-label"
+                    >Destino</label
+                  >
+                  <select
+                    id="editarDestinoViaje"
+                    name="destinoviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarConductorViaje" class="form-label"
+                    >Conductor</label
+                  >
+                  <select
+                    id="editarConductorViaje"
+                    name="conductorviaje"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarContenedorViaje" class="form-label"
+                    >Contenedor</label
+                  >
+                  <input
+                    type="text"
+                    id="editarContenedorViaje"
+                    name="contenedorviaje"
+                    class="form-control text-uppercase"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarGuiaViaje" class="form-label"
+                    >N° Guía</label
+                  >
+                  <input
+                    type="text"
+                    id="editarGuiaViaje"
+                    name="guiaviaje"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label for="editarFacturaViaje" class="form-label"
+                    >Factura</label
+                  >
+                  <input
+                    type="text"
+                    id="editarFacturaViaje"
+                    name="facturaviaje"
+                    class="form-control"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                id="btnGuardarEditarViaje"
+                class="btn btn-primary"
+              >
+                <i class="bi bi-save"></i> Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <?!= obtenerDatosHtml('js'); ?>
   </body>
 </html>

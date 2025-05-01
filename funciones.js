@@ -1,18 +1,15 @@
 // funciones.gs
 
-// 🔵 Renderizar página principal
 function doGet() {
   return HtmlService.createTemplateFromFile("index")
     .evaluate()
     .setTitle("Gestión de Flotas");
 }
 
-// 🔵 Incluir HTML dinámico
 function obtenerDatosHtml(nombre) {
   return HtmlService.createHtmlOutputFromFile(nombre).getContent();
 }
 
-// 🔵 Leer datos de una hoja
 function getData(sheetName, useCache = true) {
   const cacheKey = `data_${sheetName}`;
   if (useCache) {
@@ -22,34 +19,15 @@ function getData(sheetName, useCache = true) {
 
   const sheet = getSheet(sheetName);
   const [headers, ...rows] = sheet.getDataRange().getDisplayValues();
-  const datos = rows.filter(row => row.some(cell => String(cell).trim() !== ""));
+  const datos = rows.filter((row) =>
+    row.some((cell) => String(cell).trim() !== "")
+  );
 
   const result = { headers, datos, lastUpdated: new Date().toISOString() };
   setCache(cacheKey, result);
-
   return result;
 }
 
-// 🔵 Obtener objeto Sheet
-function getSheet(name) {
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
-}
-
-// 🔵 Cache helpers
-function clearCache(cacheKey) {
-  CacheService.getScriptCache().remove(cacheKey);
-}
-
-function getFromCache(cacheKey) {
-  const value = CacheService.getScriptCache().get(cacheKey);
-  return value ? JSON.parse(value) : null;
-}
-
-function setCache(cacheKey, value) {
-  CacheService.getScriptCache().put(cacheKey, JSON.stringify(value), 1500);
-}
-
-// 🔵 Generadores de ID
 function generarIdFlota() {
   return generarNuevoId("Flota");
 }
@@ -62,6 +40,13 @@ function generarIdSemirremolque() {
   return generarNuevoId("Semirremolque");
 }
 
+function generarIdPoliza() {
+  const sheet = getSheet("Polizas");
+  const lastRow = sheet.getLastRow();
+  const lastId = sheet.getRange(lastRow, 1).getValue();
+  return !isNaN(lastId) && lastId !== "" ? Number(lastId) + 1 : 1;
+}
+
 function generarNuevoId(hoja) {
   const sheet = getSheet(hoja);
   const lastRow = sheet.getLastRow();
@@ -69,9 +54,9 @@ function generarNuevoId(hoja) {
   return !isNaN(lastId) && lastId !== "" ? Number(lastId) + 1 : 1;
 }
 
-//--------------------------------------
+//-----------------------------
 // CRUD Flota
-//--------------------------------------
+//-----------------------------
 
 function agregarRegistroFlota(registro) {
   if (!Array.isArray(registro) || registro.length < 8) {
@@ -87,12 +72,14 @@ function agregarRegistroFlota(registro) {
 
 function verificarPatenteFlota(patente) {
   const { datos } = getData("Flota");
-  return datos.some(row => row[2] && row[2].toString().toUpperCase() === patente.toUpperCase());
+  return datos.some(
+    (row) => row[2] && row[2].toString().toUpperCase() === patente.toUpperCase()
+  );
 }
 
 function obtenerRegistroFlota(idFlota) {
   const { datos } = getData("Flota", false);
-  return datos.find(row => String(row[0]).trim() === String(idFlota).trim()) || null;
+  return datos.find((row) => String(row[0]).trim() === String(idFlota).trim()) || null;
 }
 
 function actualizarRegistroFlota(registroModificado) {
@@ -103,9 +90,9 @@ function borrarRegistroFlota(idFlota) {
   return borrarRegistroEnHoja("Flota", idFlota, "data_Flota");
 }
 
-//--------------------------------------
+//-----------------------------
 // CRUD Choferes
-//--------------------------------------
+//-----------------------------
 
 function agregarRegistroChofer(registro) {
   clearCache("data_Choferes");
@@ -115,7 +102,7 @@ function agregarRegistroChofer(registro) {
 
 function obtenerRegistroChofer(idChofer) {
   const { datos } = getData("Choferes", false);
-  return datos.find(row => String(row[0]).trim() === String(idChofer).trim()) || null;
+  return datos.find((row) => String(row[0]).trim() === String(idChofer).trim()) || null;
 }
 
 function actualizarRegistroChofer(registroModificado) {
@@ -126,9 +113,9 @@ function borrarRegistroChofer(idChofer) {
   return borrarRegistroEnHoja("Choferes", idChofer, "data_Choferes");
 }
 
-//-------------------------------------------
+//-----------------------------
 // CRUD Semirremolque
-//-------------------------------------------
+//-----------------------------
 
 function agregarRegistroSemirremolque(registro) {
   clearCache("data_Semirremolque");
@@ -136,22 +123,65 @@ function agregarRegistroSemirremolque(registro) {
   return true;
 }
 
-function obtenerRegistroSemirremolque(idSemirremolque) {
+function obtenerRegistroSemirremolque(id) {
   const { datos } = getData("Semirremolque", false);
-  return datos.find(row => String(row[0]).trim() === String(idSemirremolque).trim()) || null;
+  return datos.find((row) => String(row[0]).trim() === String(id).trim()) || null;
 }
 
 function actualizarRegistroSemirremolque(registroModificado) {
   return actualizarRegistroEnHoja("Semirremolque", registroModificado, "data_Semirremolque");
 }
 
-function borrarRegistroSemirremolque(idSemirremolque) {
-  return borrarRegistroEnHoja("Semirremolque", idSemirremolque, "data_Semirremolque");
+function borrarRegistroSemirremolque(id) {
+  return borrarRegistroEnHoja("Semirremolque", id, "data_Semirremolque");
 }
 
-//-------------------------------------------
-// Helpers de actualización / eliminación
-//-------------------------------------------
+//-----------------------------
+// CRUD Pólizas
+//-----------------------------
+
+function agregarRegistroPoliza(registro) {
+  if (!Array.isArray(registro) || registro.length < 12) {
+    throw new Error("Registro de póliza inválido");
+  }
+
+  const sheet = getSheet("Polizas");
+  clearCache("data_Polizas");
+
+  sheet.appendRow(registro);
+
+  const lastRow = sheet.getLastRow();
+  sheet.getRange(lastRow, 8).setNumberFormat('"$"#,##0');
+
+  return true;
+}
+
+function obtenerRegistroPoliza(idPoliza) {
+  const { datos } = getData("Polizas", false);
+  return datos.find((row) => String(row[0]).trim() === String(idPoliza).trim()) || null;
+}
+
+function actualizarRegistroPoliza(registroModificado) {
+  return actualizarRegistroEnHoja("Polizas", registroModificado, "data_Polizas");
+}
+
+function borrarRegistroPoliza(idPoliza) {
+  return borrarRegistroEnHoja("Polizas", idPoliza, "data_Polizas");
+}
+
+function actualizarEstadoPolizaRenovada(idPoliza) {
+  const hoja = getSheet("Polizas");
+  const datos = hoja.getDataRange().getValues();
+
+  const fila = datos.findIndex((row) => String(row[0]) === String(idPoliza));
+  if (fila === -1) throw new Error("No se encontró la póliza a renovar.");
+
+  hoja.getRange(fila + 1, 10).setValue("renovada"); // Columna 10 = Estado
+}
+
+//-----------------------------
+// Helpers de actualización y eliminación
+//-----------------------------
 
 function actualizarRegistroEnHoja(nombreHoja, registroModificado, cacheKey) {
   const sheet = getSheet(nombreHoja);
@@ -162,6 +192,9 @@ function actualizarRegistroEnHoja(nombreHoja, registroModificado, cacheKey) {
     if (String(data[i][0]).trim() === idBuscado) {
       for (let j = 0; j < registroModificado.length; j++) {
         sheet.getRange(i + 1, j + 1).setValue(registroModificado[j]);
+        if (nombreHoja === "Polizas" && j === 7) {
+          sheet.getRange(i + 1, j + 1).setNumberFormat('"CLP $"#,##0');
+        }
       }
       clearCache(cacheKey);
       return "success";
@@ -183,4 +216,64 @@ function borrarRegistroEnHoja(nombreHoja, id, cacheKey) {
     }
   }
   return "error";
+}
+
+// --------------------------------------
+// Módulo Viajes
+// --------------------------------------
+
+// 🔢 Generar ID automático: V001, V002, ...
+function generarIdViaje() {
+  const hoja = getSheet("Viajes");
+  const ultimaFila = hoja.getLastRow();
+
+  if (ultimaFila < 2) return 1; // Si no hay datos
+
+  const datos = hoja.getRange(2, 1, ultimaFila - 1).getValues(); // columna A, excluye encabezado
+  const numeros = datos
+    .map((row) => {
+      const id = row[0]; // Ej: V001
+      const match = typeof id === "string" && id.match(/^V(\d+)$/);
+      return match ? parseInt(match[1]) : null;
+    })
+    .filter((num) => !isNaN(num));
+
+  const max = Math.max(...numeros, 0);
+  return max + 1;
+}
+
+// 📥 Agregar nuevo registro de viaje
+function agregarRegistroViaje(registro) {
+  if (!Array.isArray(registro) || registro.length < 13) {
+    throw new Error("Registro inválido para Viaje");
+  }
+
+  const hoja = getSheet("Viajes");
+  hoja.appendRow(registro);
+
+  clearCache("data_Viajes");
+  return true;
+}
+
+// 🧾 Obtener registro único por ID
+function obtenerRegistroViaje(idViaje) {
+  const { datos } = getData("Viajes", false);
+  return (
+    datos.find((row) => String(row[0]).trim() === String(idViaje).trim()) ||
+    null
+  );
+}
+
+// ♻️ Actualizar viaje existente
+function actualizarRegistroViaje(registroModificado) {
+  return actualizarRegistroEnHoja(
+    "Viajes",
+    registroModificado,
+    "data_Viajes"
+  );
+}
+
+// 🗑️ Borrar viaje por ID
+function borrarRegistroViaje(idViaje) {
+  return borrarRegistroEnHoja("Viajes", idViaje, "data_Viajes");
 }
