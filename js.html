@@ -154,6 +154,9 @@
   document
     .querySelector("#polizasBtn")
     .addEventListener("click", () => loadTableData("Polizas"));
+  document
+    .querySelector("#viajesBtn")
+    .addEventListener("click", () => loadTableData("Viajes"));
 
   // Función optimizada para cargar datos
   async function loadTableData(sheetName) {
@@ -274,9 +277,9 @@
       "btn-outline-success",
       "bi-plus-circle",
       "Agregar",
-      () => {
-        if (currentSheetName === "Flota") {
-          showAddModal("modalAgregarFlota", "Agregar nuevo registro en Flota");
+      async () => {
+        if (currentSheetName === "Viajes") {
+          await showAddModal("modalAgregarViaje", "Registrar nuevo viaje");
         } else if (currentSheetName === "Choferes") {
           showAddModal("modalAgregarChofer", "Agregar nuevo Chofer");
         } else if (currentSheetName === "Semirremolque") {
@@ -286,6 +289,8 @@
           );
         } else if (currentSheetName === "Polizas") {
           showAddModal("modalAgregarPoliza", "Agregar nueva póliza");
+        } else if (currentSheetName === "Viajes") {
+          showAddModal("modalAgregarViaje", "Registrar nuevo viaje");
         }
       }
     );
@@ -303,7 +308,7 @@
   }
 
   // Mostrar modal de agregar (optimizado)
-  function showAddModal(modalId, title) {
+  async function showAddModal(modalId, title) {
     const modal = new bootstrap.Modal(document.getElementById(modalId));
     document.getElementById(`${modalId}Label`).textContent = title;
     document.getElementById(modalId.replace("modal", "form")).reset();
@@ -311,20 +316,22 @@
     if (modalId === "modalAgregarChofer") {
       const select = document.getElementById("inputAsignadoFlotaChofer");
       if (select.options.length <= 1) {
-        cargarOpcionesFlota();
+        await cargarOpcionesFlota();
       }
     } else if (modalId === "modalAgregarSemirremolque") {
-      cargarOpcionesChoferesAgregar();
+      await cargarOpcionesChoferesAgregar();
     } else if (modalId === "modalAgregarPoliza") {
-      // 🔁 Evitar listeners múltiples
       if (!listenerTipoPolizaAgregado) {
         document
           .getElementById("inputTipoPoliza")
           .addEventListener("change", actualizarOpcionesPatente);
         listenerTipoPolizaAgregado = true;
       }
-
-      actualizarOpcionesPatente(); // Carga inicial según el valor actual
+      await actualizarOpcionesPatente();
+    } else if (modalId === "modalAgregarViaje") {
+      document.getElementById(modalId.replace("modal", "form")).reset();
+      await llenarSelectsViaje("agregar");
+      await cargarConductoresDisponiblesViaje(); // ✅ Mostrar solo disponibles
     }
 
     modal.show();
@@ -332,6 +339,8 @@
 
   // Función optimizada para actualizar la tabla
   function updateTable(headers, data) {
+    const actionsDiv = document.getElementById("action-buttons"); // ✅ Definir aquí para todos los casos
+
     // 🔵 Destruir tabla anterior si existe
     if (dataTableInstance) {
       dataTableInstance.destroy();
@@ -350,7 +359,7 @@
     // 🔵 Estructura de columnas
     const formattedCols = headers.map((header, index) => ({
       title: header,
-      className: index === 0 ? "text-center" : "", // 👉 Centrar solo el ID
+      className: index === 0 ? "text-center" : "",
     }));
 
     formattedCols.push({ title: "Acciones", orderable: false });
@@ -370,6 +379,7 @@
 
       setupBotonesFlota();
     }
+
     // 🔵 Si estamos en Semirremolque
     else if (currentSheetName === "Semirremolque") {
       dataTableInstance = new DataTable("#tablaPrueba", {
@@ -385,6 +395,7 @@
 
       setupBotonesSemirremolque();
     }
+
     // 🔵 Si estamos en Polizas
     else if (currentSheetName === "Polizas") {
       dataTableInstance = new DataTable("#tablaPrueba", {
@@ -399,6 +410,22 @@
 
       setupBotonesPoliza();
     }
+
+    // 🔵 Si estamos en Viajes
+    else if (currentSheetName === "Viajes") {
+      dataTableInstance = new DataTable("#tablaPrueba", {
+        ...baseConfig,
+        data: data.map((row) => [...row, ""]),
+        columns: formattedCols,
+        columnDefs: getViajesColumnDefs(headers),
+        createdRow: function (row, data) {
+          $(row).attr("data-id", data[0]);
+        },
+      });
+
+      setupBotonesViaje(); // ✅ Para que funcione editar, ver más y borrar
+    }
+
     // 🔵 Otros módulos
     else {
       dataTableInstance = new DataTable("#tablaPrueba", {
@@ -820,7 +847,11 @@
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(resolve)
-        .withFailureHandler(reject)
+        .withFailureHandler((error) => {
+          console.error("❌ Error en función GAS:", error);
+          Swal.fire("Error", "Se produjo un error en el servidor.", "error");
+          reject(error);
+        })
         [functionName](...params);
     });
   }
@@ -1228,6 +1259,14 @@
       const { datos } = await runGoogleFunction("getData", "Choferes");
       datosChoferes = datos;
       cacheDatosPorModulo["Choferes"] = datos;
+    }
+  }
+
+  // 🔵 Carga de datos Info
+  async function cargarDatosInfo() {
+    if (!cacheDatosPorModulo["Info"]) {
+      const { datos } = await runGoogleFunction("getData", "Info");
+      cacheDatosPorModulo["Info"] = datos;
     }
   }
 
@@ -3161,9 +3200,9 @@
   // Módulo Viajes
   //------------------------------
 
-// Agregar Nuevo Viaje
+  // Agregar Nuevo Viaje
 
-document.getElementById("btnGuardarViaje").onclick = async function () {
+  document.getElementById("btnGuardarViaje").onclick = async function () {
   const btn = this;
   const originalText = btn.innerHTML;
   btn.disabled = true;
@@ -3171,27 +3210,49 @@ document.getElementById("btnGuardarViaje").onclick = async function () {
 
   try {
     const form = document.getElementById("formAgregarViaje");
+    const formData = getFormData("formAgregarViaje");
 
-    if (!form.checkValidity()) {
-      form.classList.add("was-validated");
+    // ✅ Validación personalizada de campos requeridos
+    const camposRequeridos = {
+      tipoviaje: "Tipo de viaje",
+      clienteviaje: "Cliente",
+      origenviaje: "Origen",
+      destinoviaje: "Destino",
+      empresaviaje: "Empresa",
+      conductorviaje: "Conductor",
+      fechasalidaviaje: "Fecha de salida",
+    };
+
+    for (const key in camposRequeridos) {
+      if (!formData[key] || !formData[key].trim()) {
+        await Swal.fire("Campo requerido", `Debes completar el campo: ${camposRequeridos[key]}`, "warning");
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        return;
+      }
+    }
+
+    // 🔴 Validar que el conductor no esté ya en un viaje "en ruta"
+    const conductorDisponible = await validarConductorDisponibleParaViaje(formData.conductorviaje);
+    if (!conductorDisponible) {
+      await Swal.fire("Conductor ocupado", "Este conductor ya tiene un viaje en ruta.", "warning");
       btn.disabled = false;
       btn.innerHTML = originalText;
       return;
     }
 
-    const formData = getFormData("formAgregarViaje");
-
-    // 🔢 Obtener ID (V001, V002...)
+    // 🔢 Generar ID (V001, V002...)
     const numero = await runGoogleFunction("generarIdViaje");
     const idViaje = `V${numero.toString().padStart(3, "0")}`;
 
-    // 📦 Estado: si no tiene fecha de llegada, está en ruta
-    const estado = formData.fechallegadaviaje ? "realizado" : "en ruta";
+    const fechaSalida = formatearFecha(formData.fechasalidaviaje);
+    const fechaLlegada = formatearFecha(formData.fechallegadaviaje);
+    const estado = fechaLlegada ? "realizado" : "en ruta";
 
     const registro = [
       idViaje,
-      formData.fechasalidaviaje || "",
-      formData.fechallegadaviaje || "",
+      fechaSalida || "",
+      fechaLlegada || "",
       formData.tipoviaje || "",
       formData.clienteviaje || "",
       formData.origenviaje || "",
@@ -3201,14 +3262,12 @@ document.getElementById("btnGuardarViaje").onclick = async function () {
       (formData.contenedorviaje || "").toUpperCase(),
       formData.guiaviaje || "",
       formData.facturaviaje || "",
-      estado
+      estado,
     ];
 
     await runGoogleFunction("agregarRegistroViaje", registro);
 
-    const modal = bootstrap.Modal.getInstance(
-      document.getElementById("modalAgregarViaje")
-    );
+    const modal = bootstrap.Modal.getInstance(document.getElementById("modalAgregarViaje"));
     modal.hide();
 
     await Swal.fire({
@@ -3216,7 +3275,7 @@ document.getElementById("btnGuardarViaje").onclick = async function () {
       title: "Guardado",
       text: "El viaje fue registrado correctamente.",
       timer: 1500,
-      showConfirmButton: false
+      showConfirmButton: false,
     });
 
     cacheDatosPorModulo["Viajes"] = null;
@@ -3224,10 +3283,394 @@ document.getElementById("btnGuardarViaje").onclick = async function () {
     await loadTableData("Viajes");
   } catch (error) {
     console.error("❌ Error al guardar viaje:", error);
-    Swal.fire("Error", "No se pudo guardar el viaje", "error");
+    Swal.fire("Error", error.message || "No se pudo guardar el viaje", "error");
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalText;
   }
 };
+
+  function getViajesColumnDefs(headers) {
+    const columnDefs = [];
+
+    // Estado como badge (columna 12)
+    columnDefs.push({
+      targets: 12,
+      render: function (data) {
+        const estado = (data || "").toLowerCase();
+        const clase =
+          estado === "realizado"
+            ? "badge bg-success"
+            : estado === "en ruta"
+            ? "badge bg-warning text-dark"
+            : "badge bg-secondary";
+        return `<span class="${clase}">${data}</span>`;
+      },
+    });
+
+    // Botones de acción
+    columnDefs.push({
+      targets: -1,
+      orderable: false,
+      render: function (data, type, row) {
+        return `
+        <div class="d-flex justify-content-center gap-1">
+          <button class="btn btn-sm btn-primary btn-ver-mas-viaje" data-id="${row[0]}" title="Ver más">
+            <i class="bi bi-search"></i>
+          </button>
+          <button class="btn btn-sm btn-warning btn-editar-viaje" data-id="${row[0]}" title="Editar">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button class="btn btn-sm btn-danger btn-borrar-viaje" data-id="${row[0]}" title="Eliminar">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      `;
+      },
+    });
+
+    return columnDefs;
+  }
+
+  // Botones Viaje
+  function setupBotonesViaje() {
+    // Ver más
+    $(document)
+      .off("click", ".btn-ver-mas-viaje")
+      .on("click", ".btn-ver-mas-viaje", async function () {
+        const id = $(this).data("id");
+        const datosViaje = await runGoogleFunction("obtenerRegistroViaje", id);
+        if (!datosViaje) {
+          return Swal.fire("Error", "No se encontró el viaje", "error");
+        }
+
+        const conductor = datosViaje[8];
+        const chofer =
+          (await runGoogleFunction("buscarChoferPorNombre", conductor)) || [];
+
+        const html = `
+        <strong>Fecha Salida:</strong> ${datosViaje[1]}<br/>
+        <strong>Fecha Llegada:</strong> ${datosViaje[2] || "-"}<br/>
+        <strong>Tipo:</strong> ${datosViaje[3]}<br/>
+        <strong>Contenedor:</strong> ${datosViaje[9]}<br/>
+        <strong>Guía:</strong> ${datosViaje[10]}<br/>
+        <strong>Factura:</strong> ${datosViaje[11]}<br/><hr>
+        <strong>Chofer:</strong> ${conductor || "-"}<br/>
+        <strong>Licencia:</strong> ${chofer[3] || "-"}<br/>
+        <strong>Flota asignada:</strong> ${chofer[10] || "-"}<br/>
+      `;
+
+        await Swal.fire({
+          icon: "info",
+          title: `Detalles del Viaje ${datosViaje[0]}`,
+          html: html,
+        });
+      });
+
+    // Editar
+    $(document)
+      .off("click", ".btn-editar-viaje")
+      .on("click", ".btn-editar-viaje", async function () {
+        const id = $(this).data("id");
+
+        try {
+          const registro = await runGoogleFunction("obtenerRegistroViaje", id);
+          if (!registro)
+            return Swal.fire("Error", "No se encontró el viaje", "error");
+
+          await llenarModalEditarViaje(registro);
+          const modal = new bootstrap.Modal(
+            document.getElementById("modalEditarViaje")
+          );
+          modal.show();
+        } catch (error) {
+          console.error("❌ Error al cargar viaje:", error);
+          Swal.fire("Error", "No se pudo cargar el viaje para editar", "error");
+        }
+      });
+
+    // Borrar
+    $(document)
+      .off("click", ".btn-borrar-viaje")
+      .on("click", ".btn-borrar-viaje", async function () {
+        const id = $(this).data("id");
+
+        const confirm = await Swal.fire({
+          title: "¿Eliminar viaje?",
+          text: `Se eliminará el viaje ${id}`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Sí, borrar",
+        });
+
+        if (confirm.isConfirmed) {
+          await runGoogleFunction("borrarRegistroViaje", id);
+          await Swal.fire(
+            "Eliminado",
+            "Viaje eliminado correctamente",
+            "success"
+          );
+          cacheDatosPorModulo["Viajes"] = null;
+          cacheDatosPorModulo["Viajes_headers"] = null;
+          await loadTableData("Viajes");
+        }
+      });
+  }
+
+  async function cargarOpcionesViajeDesdeInfo() {
+    try {
+      const { datos } = await runGoogleFunction("getData", "Info");
+      if (!datos || datos.length === 0) return;
+
+      // Extraer encabezados
+      const encabezados = datos[0];
+
+      // Crear un objeto donde cada encabezado es una clave con sus valores
+      const infoData = {};
+      encabezados.forEach((col, index) => {
+        infoData[col] = datos
+          .slice(1)
+          .map((row) => row[index])
+          .filter((val) => val); // Eliminar valores vacíos
+      });
+
+      // Cargar en cada select
+      cargarOpcionesSelect("inputClienteViaje", infoData["Cliente"]);
+      cargarOpcionesSelect("inputEmpresaViaje", infoData["Empresa"]);
+      cargarOpcionesSelect("inputOrigenViaje", infoData["Ubicación"]);
+      cargarOpcionesSelect("inputDestinoViaje", infoData["Ubicación"]);
+      cargarOpcionesSelect("editarClienteViaje", infoData["Cliente"]);
+      cargarOpcionesSelect("editarEmpresaViaje", infoData["Empresa"]);
+      cargarOpcionesSelect("editarOrigenViaje", infoData["Ubicación"]);
+      cargarOpcionesSelect("editarDestinoViaje", infoData["Ubicación"]);
+    } catch (error) {
+      console.error("❌ Error al cargar opciones desde Info:", error);
+      Swal.fire("Error", "No se pudieron cargar las opciones de Info", "error");
+    }
+  }
+
+  function cargarOpcionesSelect(idSelect, valores) {
+    const select = document.getElementById(idSelect);
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Seleccione</option>';
+    [...new Set(valores)].forEach((valor) => {
+      const option = document.createElement("option");
+      option.value = valor;
+      option.textContent = valor;
+      select.appendChild(option);
+    });
+  }
+
+  // 🔄 Cargar conductores con estado "disponible"
+  async function cargarConductoresDisponiblesViaje(idViajeActual = null) {
+    const { datos: choferes } = await runGoogleFunction("getData", "Choferes");
+    const { datos: viajes } = await runGoogleFunction("getData", "Viajes");
+
+    // 🔴 Obtener conductores ya asignados a viajes en ruta
+    const conductoresEnRuta = viajes
+      .filter((v) => v[12]?.toLowerCase() === "en ruta")
+      .filter((v) => v[0] !== idViajeActual) // Excluir el viaje actual si es edición
+      .map((v) => v[8]); // Nombre del conductor
+
+    const disponibles = choferes.filter((c) => {
+      const estado = (c[9] || "").toLowerCase();
+      const nombre = c[1];
+      return estado === "disponible" && !conductoresEnRuta.includes(nombre);
+    });
+
+    const selectAgregar = document.getElementById("inputConductorViaje");
+    const selectEditar = document.getElementById("editarConductorViaje");
+
+    [selectAgregar, selectEditar].forEach((select) => {
+      if (!select) return;
+      select.innerHTML = '<option value="">Seleccione</option>';
+
+      disponibles.forEach((chofer) => {
+        const option = document.createElement("option");
+        option.value = chofer[1];
+        option.textContent = chofer[1];
+        select.appendChild(option);
+      });
+    });
+  }
+
+  async function llenarSelectsViaje(tipo = "agregar") {
+    await cargarDatosInfo();
+    const datos = cacheDatosPorModulo["Info"];
+
+    if (!datos || datos.length === 0) {
+      console.warn("⚠️ No se encontraron datos en la hoja Info.");
+      return;
+    }
+
+    console.log("📄 Datos de hoja Info:", datos); // ✅
+
+    const encabezados = ["Cliente", "Empresa", "Ubicación"]; // ⚠️ Escríbelos aquí manualmente en el orden exacto
+
+    const columnas = {
+      cliente: [],
+      empresa: [],
+      ubicacion: [],
+    };
+
+    datos.forEach((fila) => {
+      columnas.cliente.push(fila[0]);
+      columnas.empresa.push(fila[1]);
+      columnas.ubicacion.push(fila[2]);
+    });
+
+    const campos = {
+      tipo: columnas["tipo"] || [],
+      cliente: columnas["cliente"] || [],
+      empresa: columnas["empresa"] || [],
+      ubicacion: columnas["ubicacion"] || [],
+      conductor: columnas["conductor"] || [],
+    };
+
+    const sufijo = tipo === "editar" ? "Editar" : "Agregar";
+
+    const selects = {
+      cliente: document.getElementById(
+        tipo === "editar" ? "editarClienteViaje" : "inputClienteViaje"
+      ),
+      empresa: document.getElementById(
+        tipo === "editar" ? "editarEmpresaViaje" : "inputEmpresaViaje"
+      ),
+      origen: document.getElementById(
+        tipo === "editar" ? "editarOrigenViaje" : "inputOrigenViaje"
+      ),
+      destino: document.getElementById(
+        tipo === "editar" ? "editarDestinoViaje" : "inputDestinoViaje"
+      ),
+      conductor: document.getElementById(
+        tipo === "editar" ? "editarConductorViaje" : "inputConductorViaje"
+      ),
+    };
+
+    for (const key in selects) {
+      const select = selects[key];
+      if (!select) continue;
+      const valores =
+        key === "origen" || key === "destino" ? campos.ubicacion : campos[key];
+
+      select.innerHTML = `<option value="">Seleccione</option>`;
+      valores.forEach((val) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = val;
+        select.appendChild(opt);
+      });
+    }
+  }
+
+  //Función llenar Modal Editar Viaje
+  async function llenarModalEditarViaje(registro) {
+    // registro = [ID, FechaSalida, FechaLlegada, Tipo, Cliente, Origen, Destino, Empresa, Conductor, Contenedor, Guía, Factura, Estado]
+    document.getElementById("editarIdViaje").value = registro[0];
+    document.getElementById("editarFechaSalidaViaje").value =
+      formatearFechaParaInput(registro[1]);
+    document.getElementById("editarFechaLlegadaViaje").value =
+      formatearFechaParaInput(registro[2]);
+
+    await llenarSelectsViaje("editar");
+    await cargarConductoresDisponiblesViaje(); // Muestra todos disponibles + actual
+
+    document.getElementById("editarTipoViaje").value = registro[3];
+    document.getElementById("editarClienteViaje").value = registro[4];
+    document.getElementById("editarOrigenViaje").value = registro[5];
+    document.getElementById("editarDestinoViaje").value = registro[6];
+    document.getElementById("editarEmpresaViaje").value = registro[7];
+    document.getElementById("editarConductorViaje").value = registro[8];
+    document.getElementById("editarContenedorViaje").value = registro[9];
+    document.getElementById("editarGuiaViaje").value = registro[10];
+    document.getElementById("editarFacturaViaje").value = registro[11];
+  }
+
+  //Boton Guardar Editar Viajes
+  document.getElementById("btnGuardarEditarViaje").onclick = async function () {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
+
+    try {
+      const formData = getFormData("formEditarViaje");
+
+      const fechaSalida = formatearFecha(formData.fechasalidaviaje);
+      const fechaLlegada = formatearFecha(formData.fechallegadaviaje);
+      const estado = fechaLlegada ? "realizado" : "en ruta";
+
+      const registroModificado = [
+        formData.idviaje,
+        fechaSalida || "",
+        fechaLlegada || "",
+        formData.tipoviaje || "",
+        formData.clienteviaje || "",
+        formData.origenviaje || "",
+        formData.destinoviaje || "",
+        formData.empresaviaje || "",
+        formData.conductorviaje || "",
+        (formData.contenedorviaje || "").toUpperCase(),
+        formData.guiaviaje || "",
+        formData.facturaviaje || "",
+        estado,
+      ];
+
+      const resultado = await runGoogleFunction(
+        "actualizarRegistroViaje",
+        registroModificado
+      );
+
+      if (resultado === "success") {
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("modalEditarViaje")
+        );
+        modal.hide();
+
+        await Swal.fire({
+          icon: "success",
+          title: "Actualizado",
+          text: "El viaje fue actualizado correctamente.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        cacheDatosPorModulo["Viajes"] = null;
+        cacheDatosPorModulo["Viajes_headers"] = null;
+        await loadTableData("Viajes");
+      } else {
+        throw new Error("No se pudo actualizar el viaje");
+      }
+    } catch (error) {
+      console.error("❌ Error al actualizar viaje:", error);
+      Swal.fire(
+        "Error",
+        error.message || "Error al actualizar el viaje",
+        "error"
+      );
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  };
+
+  async function validarConductorDisponibleParaViaje(
+    nombreConductor,
+    idViajeActual = null
+  ) {
+    const { datos } = await runGoogleFunction("getData", "Viajes");
+
+    return !datos.some((row) => {
+      const id = row[0];
+      const conductor = row[8];
+      const estado = (row[12] || "").toLowerCase();
+
+      return (
+        conductor === nombreConductor &&
+        estado === "en ruta" &&
+        id !== idViajeActual // permite editar su propio viaje
+      );
+    });
+  }
 </script>

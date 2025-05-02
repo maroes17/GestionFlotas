@@ -1656,29 +1656,23 @@
     </div>
 
     <!-- Modal Agregar Viaje -->
-    <div
-      class="modal fade"
-      id="modalAgregarViaje"
-      tabindex="-1"
-      aria-labelledby="modalAgregarViajeLabel"
-      aria-hidden="true"
-    >
+    <div class="modal fade" id="modalAgregarViaje" tabindex="-1">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-          <form id="formAgregarViaje">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalAgregarViajeLabel">
-                Agregar Nuevo Viaje
-              </h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Cerrar"
-              ></button>
-            </div>
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarViajeLabel">
+              Agregar Nuevo Viaje
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
 
-            <div class="modal-body">
+          <div class="modal-body">
+            <form id="formAgregarViaje" class="needs-validation" novalidate>
               <div class="row g-3">
                 <!-- Fecha Salida -->
                 <div class="col-md-6">
@@ -1735,7 +1729,6 @@
                     required
                   >
                     <option value="">Seleccione</option>
-                    <!-- Dinámico desde hoja Clientes -->
                   </select>
                 </div>
 
@@ -1751,7 +1744,6 @@
                     required
                   >
                     <option value="">Seleccione</option>
-                    <!-- Dinámico desde hoja Empresa -->
                   </select>
                 </div>
 
@@ -1767,7 +1759,6 @@
                     required
                   >
                     <option value="">Seleccione</option>
-                    <!-- Dinámico desde hoja Ubicaciones -->
                   </select>
                 </div>
 
@@ -1783,7 +1774,6 @@
                     required
                   >
                     <option value="">Seleccione</option>
-                    <!-- Dinámico desde hoja Ubicaciones -->
                   </select>
                 </div>
 
@@ -1799,7 +1789,6 @@
                     required
                   >
                     <option value="">Seleccione</option>
-                    <!-- Dinámico desde hoja Choferes filtrando "Disponible" -->
                   </select>
                 </div>
 
@@ -1817,7 +1806,7 @@
                   />
                 </div>
 
-                <!-- N° Guía -->
+                <!-- Guía -->
                 <div class="col-md-6">
                   <label for="inputGuiaViaje" class="form-label">N° Guía</label>
                   <input
@@ -1841,25 +1830,26 @@
                   />
                 </div>
               </div>
-            </div>
+            </form>
+          </div>
 
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                id="btnGuardarViaje"
-                class="btn btn-primary"
-              >
-                <i class="bi bi-save"></i> Guardar Viaje
-              </button>
-            </div>
-          </form>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="formAgregarViaje"
+              id="btnGuardarViaje"
+              class="btn btn-primary"
+            >
+              <i class="bi bi-save"></i> Guardar Viaje
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1874,20 +1864,18 @@
     >
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-          <form id="formEditarViaje">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalEditarViajeLabel">
-                Editar Viaje
-              </h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Cerrar"
-              ></button>
-            </div>
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalEditarViajeLabel">Editar Viaje</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
 
-            <div class="modal-body">
+          <div class="modal-body">
+            <form id="formEditarViaje" class="needs-validation" novalidate>
               <input type="hidden" id="editarIdViaje" name="idviaje" />
 
               <div class="row g-3">
@@ -2038,25 +2026,26 @@
                   />
                 </div>
               </div>
-            </div>
+            </form>
+          </div>
 
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                id="btnGuardarEditarViaje"
-                class="btn btn-primary"
-              >
-                <i class="bi bi-save"></i> Guardar Cambios
-              </button>
-            </div>
-          </form>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="formEditarViaje"
+              id="btnGuardarEditarViaje"
+              class="btn btn-primary"
+            >
+              <i class="bi bi-save"></i> Guardar Cambios
+            </button>
+          </div>
         </div>
       </div>
     </div>
