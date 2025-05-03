@@ -2049,6 +2049,38 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Reportar Incidente -->
+    <div class="modal fade" id="modalReportarIncidente" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content">
+          <div class="modal-header bg-secondary text-white">
+            <h5 class="modal-title">Reportar Incidente</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="incidenteIdViaje" />
+            <div class="mb-2">
+              <label class="form-label">ID del Viaje</label>
+              <input type="text" id="incidenteIdViajeVisual" class="form-control" disabled />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Patente del Camión</label>
+              <input type="text" id="incidentePatente" class="form-control" disabled />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Descripción del Incidente</label>
+              <textarea id="descripcionIncidente" rows="4" class="form-control" placeholder="Describa el incidente..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="btnGuardarIncidente" class="btn btn-secondary">Guardar Incidente</button>
+            <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <?!= obtenerDatosHtml('js'); ?>
   </body>
 </html>

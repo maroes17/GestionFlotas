@@ -79,7 +79,10 @@ function verificarPatenteFlota(patente) {
 
 function obtenerRegistroFlota(idFlota) {
   const { datos } = getData("Flota", false);
-  return datos.find((row) => String(row[0]).trim() === String(idFlota).trim()) || null;
+  return (
+    datos.find((row) => String(row[0]).trim() === String(idFlota).trim()) ||
+    null
+  );
 }
 
 function actualizarRegistroFlota(registroModificado) {
@@ -102,11 +105,18 @@ function agregarRegistroChofer(registro) {
 
 function obtenerRegistroChofer(idChofer) {
   const { datos } = getData("Choferes", false);
-  return datos.find((row) => String(row[0]).trim() === String(idChofer).trim()) || null;
+  return (
+    datos.find((row) => String(row[0]).trim() === String(idChofer).trim()) ||
+    null
+  );
 }
 
 function actualizarRegistroChofer(registroModificado) {
-  return actualizarRegistroEnHoja("Choferes", registroModificado, "data_Choferes");
+  return actualizarRegistroEnHoja(
+    "Choferes",
+    registroModificado,
+    "data_Choferes"
+  );
 }
 
 function borrarRegistroChofer(idChofer) {
@@ -125,11 +135,17 @@ function agregarRegistroSemirremolque(registro) {
 
 function obtenerRegistroSemirremolque(id) {
   const { datos } = getData("Semirremolque", false);
-  return datos.find((row) => String(row[0]).trim() === String(id).trim()) || null;
+  return (
+    datos.find((row) => String(row[0]).trim() === String(id).trim()) || null
+  );
 }
 
 function actualizarRegistroSemirremolque(registroModificado) {
-  return actualizarRegistroEnHoja("Semirremolque", registroModificado, "data_Semirremolque");
+  return actualizarRegistroEnHoja(
+    "Semirremolque",
+    registroModificado,
+    "data_Semirremolque"
+  );
 }
 
 function borrarRegistroSemirremolque(id) {
@@ -158,11 +174,18 @@ function agregarRegistroPoliza(registro) {
 
 function obtenerRegistroPoliza(idPoliza) {
   const { datos } = getData("Polizas", false);
-  return datos.find((row) => String(row[0]).trim() === String(idPoliza).trim()) || null;
+  return (
+    datos.find((row) => String(row[0]).trim() === String(idPoliza).trim()) ||
+    null
+  );
 }
 
 function actualizarRegistroPoliza(registroModificado) {
-  return actualizarRegistroEnHoja("Polizas", registroModificado, "data_Polizas");
+  return actualizarRegistroEnHoja(
+    "Polizas",
+    registroModificado,
+    "data_Polizas"
+  );
 }
 
 function borrarRegistroPoliza(idPoliza) {
@@ -266,14 +289,134 @@ function obtenerRegistroViaje(idViaje) {
 
 // ♻️ Actualizar viaje existente
 function actualizarRegistroViaje(registroModificado) {
-  return actualizarRegistroEnHoja(
-    "Viajes",
-    registroModificado,
-    "data_Viajes"
-  );
+  return actualizarRegistroEnHoja("Viajes", registroModificado, "data_Viajes");
 }
 
 // 🗑️ Borrar viaje por ID
 function borrarRegistroViaje(idViaje) {
   return borrarRegistroEnHoja("Viajes", idViaje, "data_Viajes");
+}
+
+// Incidentes
+function generarIdIncidente() {
+  const hoja = getSheet("Incidentes");
+  const datos = hoja.getDataRange().getValues();
+  const total = datos.length;
+  return "INC" + String(total).padStart(3, "0");
+}
+
+function agregarIncidente(idViaje, patente, chofer, descripcion) {
+  const hoja = getSheet("Incidentes");
+  const nuevoId = generarIdIncidente();
+  const fecha = new Date();
+  const estado = "abierto";
+  const usuario = Session.getActiveUser().getEmail();
+
+  const fila = [
+    nuevoId,
+    fecha,
+    idViaje,
+    patente,
+    chofer,
+    descripcion,
+    estado,
+    usuario,
+  ];
+
+  hoja.appendRow(fila);
+  return "success";
+}
+
+//Buscar Chofer por nombre
+function buscarChoferPorNombre(nombre) {
+  const hoja = getSheet("Choferes");
+  const datos = hoja.getDataRange().getValues();
+  return (
+    datos.find((row) => String(row[1]).trim() === String(nombre).trim()) || null
+  );
+}
+
+//Reportar Incidentes
+function reportarIncidente(idViaje, descripcion) {
+  const hojaViajes = getSheet("Viajes");
+  const hojaFlota = getSheet("Flota");
+  const hojaChoferes = getSheet("Choferes");
+  const hojaIncidentes = getSheet("Incidentes");
+
+  const viajes = hojaViajes.getDataRange().getValues();
+  const viaje = viajes.find(
+    (row) => String(row[0]).trim() === String(idViaje).trim()
+  );
+
+  if (!viaje) {
+    throw new Error("Viaje no encontrado.");
+  }
+
+  const nombreChofer = viaje[8]; // Columna 9 = Conductor
+  let patenteCamion = "";
+
+  // Buscar la patente asignada al chofer
+  const choferes = hojaChoferes.getDataRange().getValues();
+  const chofer = choferes.find((row) => row[1] === nombreChofer);
+  if (chofer) {
+    patenteCamion = chofer[10] || ""; // Columna 11 = Flota asignada
+  }
+
+  // 🟡 Cambiar estado del viaje a "en mantención"
+  const rowIndexViaje = viajes.findIndex(
+    (row) => String(row[0]).trim() === String(idViaje).trim()
+  );
+  if (rowIndexViaje !== -1) {
+    const colEstado = obtenerIndiceColumna(hojaViajes, "Estado");
+    Logger.log(
+      "🟢 Cambio de estado del viaje en fila:",
+      rowIndexViaje + 1,
+      "columna:",
+      colEstado
+    );
+    hojaViajes.getRange(rowIndexViaje + 1, colEstado).setValue("en mantención");
+  } else {
+    Logger.log("🔴 No se encontró la fila del viaje para cambiar estado.");
+  }
+
+  // Cambiar estado de flota a "mantención" si hay patente
+  if (patenteCamion) {
+    const flota = hojaFlota.getDataRange().getValues();
+    const rowIndexFlota = flota.findIndex((row) => row[2] === patenteCamion); // Columna 3 = Patente
+    if (rowIndexFlota !== -1) {
+      const colEstadoFlota = obtenerIndiceColumna(hojaFlota, "Estado");
+      hojaFlota
+        .getRange(rowIndexFlota + 1, colEstadoFlota)
+        .setValue("mantención");
+    }
+  }
+
+  // Generar nuevo ID incidente: INC001, INC002, ...
+  const incidentes = hojaIncidentes.getDataRange().getValues();
+  const nuevoId = "INC" + String(incidentes.length).padStart(3, "0");
+
+  const fila = [
+    nuevoId,
+    new Date(),
+    idViaje,
+    patenteCamion,
+    nombreChofer,
+    descripcion,
+    "abierto",
+    Session.getActiveUser().getEmail(),
+  ];
+
+  hojaIncidentes.appendRow(fila);
+
+  clearCache("data_Viajes"); // 🔥 ESTA LÍNEA SOLUCIONA TU PROBLEMA
+  return "success";
+}
+
+function obtenerIndiceColumna(hoja, nombreColumna) {
+  const headers = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  return (
+    headers.findIndex(
+      (h) => h.trim().toLowerCase() === nombreColumna.toLowerCase()
+    ) + 1
+  );
 }
