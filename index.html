@@ -100,6 +100,8 @@
             <!-- JS insertará los botones aquí -->
           </div>
 
+          <div id="filtros-viajes" class="d-flex justify-content-center mb-4 gap-2" style="display: none"></div>
+
           <table
             id="tablaPrueba"
             class="table table-striped"
@@ -2050,36 +2052,147 @@
       </div>
     </div>
 
-    <!-- Modal Reportar Incidente -->
-    <div class="modal fade" id="modalReportarIncidente" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-md">
-        <div class="modal-content">
-          <div class="modal-header bg-secondary text-white">
-            <h5 class="modal-title">Reportar Incidente</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Modal Incidentes -->
+<div
+class="modal fade"
+id="modalIncidentes"
+tabindex="-1"
+aria-labelledby="modalIncidentesLabel"
+aria-hidden="true"
+>
+<div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-content">
+    <!-- ✅ Cabecera con nuevo color -->
+    <div class="modal-header bg-primary text-white">
+      <h5 class="modal-title" id="modalIncidentesLabel">
+        Incidentes del Viaje <span id="incidente_id_viaje" class="fw-bold"></span>
+      </h5>
+      <button
+        type="button"
+        class="btn-close btn-close-white"
+        data-bs-dismiss="modal"
+        aria-label="Cerrar"
+      ></button>
+    </div>
+
+    <div class="modal-body">
+      <!-- ✅ Formulario nuevo incidente arriba -->
+      <h6 class="text-primary">Agregar nuevo incidente</h6>
+      <form id="formNuevoIncidente" class="mb-4">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="incidente_fecha" class="form-label">Fecha</label>
+            <input type="date" class="form-control" id="incidente_fecha" required />
           </div>
-          <div class="modal-body">
-            <input type="hidden" id="incidenteIdViaje" />
-            <div class="mb-2">
-              <label class="form-label">ID del Viaje</label>
-              <input type="text" id="incidenteIdViajeVisual" class="form-control" disabled />
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Patente del Camión</label>
-              <input type="text" id="incidentePatente" class="form-control" disabled />
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Descripción del Incidente</label>
-              <textarea id="descripcionIncidente" rows="4" class="form-control" placeholder="Describa el incidente..."></textarea>
-            </div>
+          <div class="col-md-3">
+            <label for="incidente_tipo" class="form-label">Tipo</label>
+            <select class="form-select" id="incidente_tipo" required>
+              <option value="">Selecciona...</option>
+              <option value="Falla mecánica">Falla mecánica</option>
+              <option value="Accidente">Accidente</option>
+              <option value="Documentación">Documentación</option>
+              <option value="Otro">Otro</option>
+            </select>
           </div>
-          <div class="modal-footer">
-            <button id="btnGuardarIncidente" class="btn btn-secondary">Guardar Incidente</button>
-            <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <div class="col-md-6">
+            <label for="incidente_descripcion" class="form-label">Descripción</label>
+            <input type="text" class="form-control" id="incidente_descripcion" required />
+          </div>
+          <div class="col-md-4">
+            <label for="incidente_patente" class="form-label">Patente</label>
+            <input
+              type="text"
+              class="form-control"
+              id="incidente_patente"
+              readonly
+            />
+          </div>
+          <div class="col-md-4">
+            <label for="incidente_chofer" class="form-label">Chofer</label>
+            <input
+              type="text"
+              class="form-control"
+              id="incidente_chofer"
+              readonly
+            />
+          </div>
+          <div class="col-md-4">
+            <label for="incidente_reportado_por" class="form-label">Reportado por</label>
+            <select class="form-select" id="incidente_reportado_por" required>
+              <option value="">Seleccione...</option>
+              <option value="Patricio Pachecho">Patricio Pachecho</option>
+              <option value="Matias Rojas">Matias Rojas</option>
+            </select>
           </div>
         </div>
+      </form>
+
+      <!-- ✅ Tabla historial de incidentes debajo -->
+      <h6 class="text-primary mt-4">Historial de incidentes</h6>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="tablaHistorialIncidentes">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th>Estado</th>
+              <th>Reportado por</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoHistorialIncidentes"></tbody>
+        </table>
       </div>
     </div>
+
+    <div class="modal-footer">
+      <button id="btnGuardarIncidente" class="btn btn-primary">
+        <i class="bi bi-save"></i> Guardar Incidente
+      </button>
+      <button class="btn btn-secondary" data-bs-dismiss="modal">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Agrega este modal para confirmar la solución -->
+<div class="modal fade" id="modalSolucionarIncidente" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Marcar Incidente como Solucionado</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formSolucionIncidente">
+          <input type="hidden" id="incidenteIdSolucion">
+          <input type="hidden" id="viajeIdSolucion">
+          
+          <div class="mb-3">
+            <label for="fechaSolucion" class="form-label">Fecha de Solución</label>
+            <input type="date" class="form-control" id="fechaSolucion" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="observacionSolucion" class="form-label">Observaciones</label>
+            <textarea class="form-control" id="observacionSolucion" rows="3" required></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btnConfirmarSolucion" class="btn btn-success">
+          <i class="bi bi-check-circle"></i> Confirmar Solución
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
     <?!= obtenerDatosHtml('js'); ?>
   </body>

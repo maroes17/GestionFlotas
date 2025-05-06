@@ -1,3 +1,4 @@
+
 // utils.gs
 /**
  * Obtiene una instancia de la hoja de cálculo.
@@ -14,7 +15,16 @@ function getSpreadsheet() {
  */
 function getSheet(sheetName) {
   const ss = getSpreadsheet();
-  return ss.getSheetByName(sheetName);
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(`No se encontró la hoja con nombre: ${sheetName}`);
+  }
+  return sheet;
+}
+
+function getDataFromSheet(sheetName) {
+  const sheet = getSheet(sheetName);
+  return sheet.getDataRange().getValues();
 }
 
 /**

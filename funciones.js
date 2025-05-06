@@ -10,7 +10,12 @@ function obtenerDatosHtml(nombre) {
   return HtmlService.createHtmlOutputFromFile(nombre).getContent();
 }
 
-function getData(sheetName, useCache = true) {
+function getData(sheetName, useCache = false) {
+  if (sheetName === "Viajes") {
+    verificarEstadosDeTodosLosViajes();
+    Utilities.sleep(500);
+  }
+
   const cacheKey = `data_${sheetName}`;
   if (useCache) {
     const cached = getFromCache(cacheKey);
@@ -25,6 +30,7 @@ function getData(sheetName, useCache = true) {
 
   const result = { headers, datos, lastUpdated: new Date().toISOString() };
   setCache(cacheKey, result);
+  console.log("🟢 Datos recibidos para Viajes:", result);
   return result;
 }
 
@@ -207,23 +213,18 @@ function actualizarEstadoPolizaRenovada(idPoliza) {
 //-----------------------------
 
 function actualizarRegistroEnHoja(nombreHoja, registroModificado, cacheKey) {
-  const sheet = getSheet(nombreHoja);
-  const data = sheet.getDataRange().getValues();
-  const idBuscado = String(registroModificado[0]).trim();
+  const hoja = getSheet(nombreHoja);
+  const datos = hoja.getDataRange().getValues();
+  const id = registroModificado[0];
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]).trim() === idBuscado) {
-      for (let j = 0; j < registroModificado.length; j++) {
-        sheet.getRange(i + 1, j + 1).setValue(registroModificado[j]);
-        if (nombreHoja === "Polizas" && j === 7) {
-          sheet.getRange(i + 1, j + 1).setNumberFormat('"CLP $"#,##0');
-        }
-      }
+  for (let i = 1; i < datos.length; i++) {
+    if (String(datos[i][0]) === String(id)) {
+      hoja.getRange(i + 1, 1, 1, registroModificado.length).setValues([registroModificado]);
       clearCache(cacheKey);
       return "success";
     }
   }
-  throw new Error(`ID no encontrado en ${nombreHoja}`);
+  return "not found";
 }
 
 function borrarRegistroEnHoja(nombreHoja, id, cacheKey) {
@@ -245,17 +246,16 @@ function borrarRegistroEnHoja(nombreHoja, id, cacheKey) {
 // Módulo Viajes
 // --------------------------------------
 
-// 🔢 Generar ID automático: V001, V002, ...
 function generarIdViaje() {
   const hoja = getSheet("Viajes");
   const ultimaFila = hoja.getLastRow();
 
-  if (ultimaFila < 2) return 1; // Si no hay datos
+  if (ultimaFila < 2) return 1;
 
-  const datos = hoja.getRange(2, 1, ultimaFila - 1).getValues(); // columna A, excluye encabezado
+  const datos = hoja.getRange(2, 1, ultimaFila - 1).getValues();
   const numeros = datos
     .map((row) => {
-      const id = row[0]; // Ej: V001
+      const id = row[0];
       const match = typeof id === "string" && id.match(/^V(\d+)$/);
       return match ? parseInt(match[1]) : null;
     })
@@ -265,11 +265,13 @@ function generarIdViaje() {
   return max + 1;
 }
 
-// 📥 Agregar nuevo registro de viaje
 function agregarRegistroViaje(registro) {
-  if (!Array.isArray(registro) || registro.length < 13) {
+  if (!Array.isArray(registro) || registro.length < 12) {
     throw new Error("Registro inválido para Viaje");
   }
+
+  const id = "V" + generarIdViaje().toString().padStart(3, "0");
+  registro[0] = id;
 
   const hoja = getSheet("Viajes");
   hoja.appendRow(registro);
@@ -278,7 +280,6 @@ function agregarRegistroViaje(registro) {
   return true;
 }
 
-// 🧾 Obtener registro único por ID
 function obtenerRegistroViaje(idViaje) {
   const { datos } = getData("Viajes", false);
   return (
@@ -287,17 +288,14 @@ function obtenerRegistroViaje(idViaje) {
   );
 }
 
-// ♻️ Actualizar viaje existente
 function actualizarRegistroViaje(registroModificado) {
   return actualizarRegistroEnHoja("Viajes", registroModificado, "data_Viajes");
 }
 
-// 🗑️ Borrar viaje por ID
 function borrarRegistroViaje(idViaje) {
   return borrarRegistroEnHoja("Viajes", idViaje, "data_Viajes");
 }
 
-// Incidentes
 function generarIdIncidente() {
   const hoja = getSheet("Incidentes");
   const datos = hoja.getDataRange().getValues();
@@ -309,8 +307,8 @@ function agregarIncidente(idViaje, patente, chofer, descripcion) {
   const hoja = getSheet("Incidentes");
   const nuevoId = generarIdIncidente();
   const fecha = new Date();
-  const estado = "abierto";
-  const usuario = Session.getActiveUser().getEmail();
+  const estado = "Abierto";
+  const usuario = Session.getActiveUser().getEmail(); // Asegúrate de que tienes permisos
 
   const fila = [
     nuevoId,
@@ -327,7 +325,6 @@ function agregarIncidente(idViaje, patente, chofer, descripcion) {
   return "success";
 }
 
-//Buscar Chofer por nombre
 function buscarChoferPorNombre(nombre) {
   const hoja = getSheet("Choferes");
   const datos = hoja.getDataRange().getValues();
@@ -336,7 +333,6 @@ function buscarChoferPorNombre(nombre) {
   );
 }
 
-//Reportar Incidentes
 function reportarIncidente(idViaje, descripcion) {
   const hojaViajes = getSheet("Viajes");
   const hojaFlota = getSheet("Flota");
@@ -352,37 +348,26 @@ function reportarIncidente(idViaje, descripcion) {
     throw new Error("Viaje no encontrado.");
   }
 
-  const nombreChofer = viaje[8]; // Columna 9 = Conductor
+  const nombreChofer = viaje[8];
   let patenteCamion = "";
 
-  // Buscar la patente asignada al chofer
   const choferes = hojaChoferes.getDataRange().getValues();
   const chofer = choferes.find((row) => row[1] === nombreChofer);
   if (chofer) {
-    patenteCamion = chofer[10] || ""; // Columna 11 = Flota asignada
+    patenteCamion = chofer[10] || "";
   }
 
-  // 🟡 Cambiar estado del viaje a "en mantención"
   const rowIndexViaje = viajes.findIndex(
     (row) => String(row[0]).trim() === String(idViaje).trim()
   );
   if (rowIndexViaje !== -1) {
     const colEstado = obtenerIndiceColumna(hojaViajes, "Estado");
-    Logger.log(
-      "🟢 Cambio de estado del viaje en fila:",
-      rowIndexViaje + 1,
-      "columna:",
-      colEstado
-    );
     hojaViajes.getRange(rowIndexViaje + 1, colEstado).setValue("en mantención");
-  } else {
-    Logger.log("🔴 No se encontró la fila del viaje para cambiar estado.");
   }
 
-  // Cambiar estado de flota a "mantención" si hay patente
   if (patenteCamion) {
     const flota = hojaFlota.getDataRange().getValues();
-    const rowIndexFlota = flota.findIndex((row) => row[2] === patenteCamion); // Columna 3 = Patente
+    const rowIndexFlota = flota.findIndex((row) => row[2] === patenteCamion);
     if (rowIndexFlota !== -1) {
       const colEstadoFlota = obtenerIndiceColumna(hojaFlota, "Estado");
       hojaFlota
@@ -391,7 +376,6 @@ function reportarIncidente(idViaje, descripcion) {
     }
   }
 
-  // Generar nuevo ID incidente: INC001, INC002, ...
   const incidentes = hojaIncidentes.getDataRange().getValues();
   const nuevoId = "INC" + String(incidentes.length).padStart(3, "0");
 
@@ -407,9 +391,111 @@ function reportarIncidente(idViaje, descripcion) {
   ];
 
   hojaIncidentes.appendRow(fila);
-
-  clearCache("data_Viajes"); // 🔥 ESTA LÍNEA SOLUCIONA TU PROBLEMA
+  clearCache("data_Viajes");
   return "success";
+}
+
+function registrarIncidente(data) {
+  try {
+    const hoja = getSheet("Incidentes");
+    if (!hoja) throw new Error("Hoja 'Incidentes' no encontrada");
+
+    const idNuevo = generarIdIncidente();
+    const fila = [
+      idNuevo,
+      data.fecha,
+      data.idViaje,
+      data.patente,
+      data.chofer,
+      data.tipo,
+      data.descripcion,
+      "Abierto",
+      data.reportadoPor,
+      "",
+      "",
+    ];
+
+    hoja.appendRow(fila);
+
+    clearCache("data_Incidentes");
+    clearCache("data_Viajes");
+
+    verificarEstadoViaje(data.idViaje);
+
+    return "success";
+  } catch (error) {
+    throw new Error("Error al guardar incidente: " + error.message);
+  }
+}
+
+function verificarEstadoViaje(idViaje) {
+  const hojaIncidentes = getSheet("Incidentes");
+  const incidentes = hojaIncidentes.getDataRange().getValues();
+  const hojaViajes = getSheet("Viajes");
+  const viajes = hojaViajes.getDataRange().getValues();
+
+  const headers = viajes[0];
+  const colId = headers.indexOf("ID Viaje");
+  const colEstado = headers.indexOf("Estado");
+  const colFechaLlegada = headers.indexOf("Fecha Llegada");
+
+  for (let i = 1; i < viajes.length; i++) {
+    if (String(viajes[i][colId]) === String(idViaje)) {
+      // Filtra incidentes abiertos para este viaje
+      const abiertos = incidentes.filter(
+        (row) => String(row[2]) === String(idViaje) && (row[7] || "").toLowerCase() === "abierto"
+      );
+      let nuevoEstado;
+      if (abiertos.length > 0) {
+        nuevoEstado = "mantención";
+      } else if (viajes[i][colFechaLlegada] && String(viajes[i][colFechaLlegada]).trim() !== "") {
+        nuevoEstado = "realizado";
+      } else {
+        nuevoEstado = "en ruta";
+      }
+      hojaViajes.getRange(i + 1, colEstado + 1).setValue(nuevoEstado);
+      break;
+    }
+  }
+}
+
+function marcarIncidenteSolucionado(datos) {
+  try {
+    const hoja = getSheet("Incidentes");
+    const data = hoja.getDataRange().getValues();
+    const headers = data[0].map(h => h.trim());
+    const idxId = headers.indexOf("ID Incidente");
+    const idxEstado = headers.indexOf("Estado");
+    const idxFechaSol = headers.indexOf("Fecha Solución");
+    const idxObsSol = headers.indexOf("Observación Solución");
+
+    let encontrado = false;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idxId]) === String(datos.idIncidente)) {
+        hoja.getRange(i + 1, idxEstado + 1).setValue("Resuelto");
+        hoja.getRange(i + 1, idxFechaSol + 1).setValue(datos.fechaSolucion);
+        hoja.getRange(i + 1, idxObsSol + 1).setValue(datos.observacion);
+        encontrado = true;
+        break;
+      }
+    }
+
+    if (!encontrado) {
+      return { exito: false, mensaje: "Incidente no encontrado" };
+    }
+
+    // Actualiza el estado del viaje si corresponde
+    actualizarEstadoViajeSiNecesario(datos.idViaje);
+
+    return { exito: true, mensaje: "Incidente solucionado correctamente" };
+  } catch (e) {
+    return { exito: false, mensaje: e.message };
+  }
+}
+
+function generarIdUnico(prefix = "") {
+  const timestamp = new Date().getTime();
+  return `${prefix}${timestamp}`;
 }
 
 function obtenerIndiceColumna(hoja, nombreColumna) {
@@ -419,4 +505,216 @@ function obtenerIndiceColumna(hoja, nombreColumna) {
       (h) => h.trim().toLowerCase() === nombreColumna.toLowerCase()
     ) + 1
   );
+}
+
+// Esta función ya existe en tu código - solo verifica que coincida
+function obtenerIncidentesPorViaje(idViaje) {
+  try {
+    const sheet = getSheet("Incidentes");
+    const data = sheet.getDataRange().getDisplayValues();
+
+    if (data.length < 2) return [];
+
+    const headers = data[0].map((h) => h.trim());
+    const rows = data.slice(1);
+
+    // Índices basados en tus headers reales
+    const columnas = {
+      id: headers.indexOf("ID Incidente"),
+      fecha: headers.indexOf("Fecha"),
+      idViaje: headers.indexOf("ID Viaje"),
+      patente: headers.indexOf("Patente"),
+      chofer: headers.indexOf("Chofer"),
+      tipo: headers.indexOf("Tipo"),
+      descripcion: headers.indexOf("Descripción"),
+      estado: headers.indexOf("Estado"),
+      reportadoPor: headers.indexOf("Reportado por"),
+    };
+
+    // Verificar que todas las columnas existan
+    if (Object.values(columnas).some((index) => index === -1)) {
+      console.error("Error en índices de columnas:", columnas);
+      return [];
+    }
+
+    return rows
+      .filter(
+        (row) =>
+          row[columnas.idViaje] &&
+          row[columnas.idViaje].toString().trim() === idViaje.toString().trim()
+      )
+      .map((row) => ({
+        id: row[columnas.id] || "",
+        fecha: row[columnas.fecha] || "",
+        idViaje: row[columnas.idViaje] || "",
+        patente: row[columnas.patente] || "",
+        chofer: row[columnas.chofer] || "",
+        tipo: row[columnas.tipo] || "",
+        descripcion: row[columnas.descripcion] || "",
+        estado: row[columnas.estado] || "",
+        reportadoPor: row[columnas.reportadoPor] || "",
+      }));
+  } catch (e) {
+    console.error("Error en obtenerIncidentesPorViaje:", e);
+    return [];
+  }
+}
+
+// Función auxiliar para formato de fecha
+function formatDateForDisplay(dateValue) {
+  if (!dateValue) return "";
+  try {
+    const date = new Date(dateValue);
+    return isNaN(date) ? dateValue : date.toISOString().split("T")[0];
+  } catch {
+    return dateValue;
+  }
+}
+
+function testObtenerIncidentes() {
+  const testId = "V001";
+  console.log("🔍 Testeando con ID:", testId);
+
+  const sheet = getSheet("Incidentes");
+  const data = sheet.getDataRange().getDisplayValues();
+  console.log("📜 Headers reales:", data[0]);
+
+  const resultados = obtenerIncidentesPorViaje(testId);
+  console.log("✅ Resultados del test:", JSON.stringify(resultados, null, 2));
+
+  // Verificar coincidencias exactas
+  const idViajeCol = data[0].indexOf("ID Viaje");
+  if (idViajeCol !== -1) {
+    console.log(
+      "🔎 Coincidencias encontradas en filas:",
+      data
+        .slice(1)
+        .map((row, i) => (row[idViajeCol] === testId ? `Fila ${i + 2}` : null))
+        .filter(Boolean)
+    );
+  }
+
+  return resultados;
+}
+
+function testIncidentes() {
+  const resultado = obtenerIncidentesPorViaje("V001");
+  console.log("✅ Resultado final:", JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+function getSheetHeaders(sheetName) {
+  const sheet = getSheet(sheetName);
+  return sheet.getDataRange().getDisplayValues()[0];
+}
+
+function marcarIncidenteResuelto(datos) {
+  const hoja = getSheet("Incidentes");
+  const data = hoja.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(datos.idIncidente)) {
+      hoja.getRange(i + 1, 8).setValue("Resuelto");
+      hoja.getRange(i + 1, 10).setValue(datos.fechaSolucion);
+      hoja.getRange(i + 1, 11).setValue(datos.observacion);
+
+      // ✅ Verificación correcta del estado del viaje
+      actualizarEstadoViajeSiNecesario(data[i][2]);
+      break;
+    }
+  }
+}
+
+// Función para actualizar estado del viaje si todos los incidentes están resueltos
+function actualizarEstadoViajeSiNecesario(idViaje) {
+  const hojaIncidentes = getSheet("Incidentes");
+  const hojaViajes = getSheet("Viajes");
+
+  // Obtener todos los incidentes del viaje
+  const incidentes = obtenerIncidentesPorViaje(idViaje);
+  const todosResueltos =
+    incidentes.length > 0 &&
+    incidentes.every((inc) => (inc.estado || '').toString().trim().toLowerCase() === "resuelto");
+
+  if (!todosResueltos) return false;
+
+  // Actualizar estado en hoja Viajes
+  const datosViajes = hojaViajes.getDataRange().getValues();
+  const headers = datosViajes[0];
+  const idxId = headers.indexOf("ID Viaje");
+  const idxEstado = headers.indexOf("Estado");
+
+  for (let i = 1; i < datosViajes.length; i++) {
+    if (String(datosViajes[i][idxId]) === String(idViaje)) {
+      hojaViajes.getRange(i + 1, idxEstado + 1).setValue("En ruta");
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Obtiene el estado actual de un viaje específico
+ * @param {string} idViaje - ID del viaje a consultar
+ * @returns {string} Estado del viaje (ej: "Mantención", "En ruta")
+ */
+function obtenerEstadoViaje(idViaje) {
+  try {
+    const sheet = getSheet("Viajes");
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map((h) => h.trim()); // Limpia espacios en los headers
+
+    // Usa los nombres exactos de tus columnas
+    const idCol = headers.indexOf("ID Viaje"); // Ajustado a tu nombre real
+    const estadoCol = headers.indexOf("Estado"); // Asegúrate que coincida exactamente
+
+    if (idCol === -1) throw new Error("Columna 'ID Viaje' no encontrada");
+    if (estadoCol === -1) throw new Error("Columna 'Estado' no encontrada");
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === idViaje) {
+        return data[i][estadoCol].toString();
+      }
+    }
+
+    throw new Error(`Viaje con ID ${idViaje} no encontrado`);
+  } catch (e) {
+    console.error("Error en obtenerEstadoViaje:", e);
+    throw e;
+  }
+}
+
+function verificarEstadosDeTodosLosViajes() {
+  var hojaViajes = getSheet("Viajes");
+  var hojaIncidentes = getSheet("Incidentes");
+
+  var datosViajes = hojaViajes.getDataRange().getValues();
+  var datosIncidentes = hojaIncidentes.getDataRange().getValues();
+
+  var headerViajes = datosViajes[0];
+  var headerIncidentes = datosIncidentes[0];
+
+  var idxIdViaje = headerViajes.indexOf("ID Viaje");
+  var idxEstadoViaje = headerViajes.indexOf("Estado");
+  var idxIdViajeInc = headerIncidentes.indexOf("ID Viaje");
+  var idxEstadoInc = headerIncidentes.indexOf("Estado");
+
+  for (var i = 1; i < datosViajes.length; i++) {
+    var idViaje = datosViajes[i][idxIdViaje];
+    var incidentesAbiertos = datosIncidentes.slice(1).filter(function(inc) {
+      // Compara insensible a mayúsculas/minúsculas y elimina espacios
+      return inc[idxIdViajeInc] === idViaje &&
+        (inc[idxEstadoInc] || "").toString().trim().toLowerCase() !== "resuelto";
+    });
+    var nuevoEstado = "en ruta";
+    if (incidentesAbiertos.length > 0) {
+      nuevoEstado = "mantención";
+    } else if (datosViajes[i][idxEstadoViaje] === "realizado") {
+      nuevoEstado = "realizado";
+    }
+    if (datosViajes[i][idxEstadoViaje] !== nuevoEstado) {
+      hojaViajes.getRange(i + 1, idxEstadoViaje + 1).setValue(nuevoEstado);
+    }
+  }
 }

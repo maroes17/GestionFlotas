@@ -109,6 +109,12 @@
     return valor.replace(/[^0-9]/g, ""); // Elimina CLP, $ y comas
   }
 
+  function parseDate(fechaISO) {
+    const date = new Date(fechaISO);
+    if (isNaN(date)) return fechaISO;
+    return date.toLocaleDateString("es-CL");
+  }
+
   // Configuración de idioma para DataTables
   const dtLanguage = {
     decimal: ",",
@@ -270,6 +276,11 @@
           crearFiltrosPolizas();
           filtrosPolizasContainer.style.display = "flex";
         }
+
+        if (sheetName === "Viajes") {
+          crearFiltrosViajes();
+          document.getElementById("filtros-viajes").style.display = "flex";
+        }
       } catch (error) {
         console.error("Error al cargar datos:", error);
         document.getElementById(
@@ -366,6 +377,11 @@
 
   // Función optimizada para actualizar la tabla
   function updateTable(headers, data) {
+    const tabla = document.getElementById("tablaPrueba");
+    if (!tabla) {
+      console.error("No se encontró el elemento #tablaPrueba en el DOM.");
+      return;
+    }
     const actionsDiv = document.getElementById("action-buttons"); // ✅ Definir aquí para todos los casos
 
     // 🔵 Destruir tabla anterior si existe
@@ -527,85 +543,85 @@
   // Solo asegúrate de que usen las mismas optimizaciones de manejo de errores y async/await
 
   // Función optimizada para guardar nuevo registro
-  document.getElementById("btnGuardarEditarFlota").onclick = async function () {
-    const btn = this;
-    const originalText = btn.textContent;
+  // document.getElementById("btnGuardarEditarFlota").onclick = async function () {
+  //   const btn = this;
+  //   const originalText = btn.textContent;
 
-    try {
-      btn.disabled = true;
-      btn.innerHTML =
-        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+  //   try {
+  //     btn.disabled = true;
+  //     btn.innerHTML =
+  //       '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
 
-      if (!validarFormularioFlota("formEditarFlota")) return;
+  //     if (!validarFormularioFlota("formEditarFlota")) return;
 
-      const idFlota = document.getElementById("editarIdFlota").value;
-      const tipo = document.getElementById("editarTipoFlota").value;
-      const patente = document
-        .getElementById("editarPatenteFlota")
-        .value.trim()
-        .toUpperCase();
-      const nroChasis = document
-        .getElementById("editarNroChasisFlota")
-        .value.trim();
-      const marca = document.getElementById("editarMarcaFlota").value;
-      const modelo = document.getElementById("editarModeloFlota").value;
-      const año = document.getElementById("editarAñoFlota").value;
-      const capacidad = document.getElementById("editarCapacidadFlota").value;
-      const estado = document.getElementById("editarEstadoFlota").value;
-      const fechaIngreso = document.getElementById(
-        "editarFechaIngresoFlota"
-      ).value;
-      const observaciones = document.getElementById(
-        "editarObservacionesFlota"
-      ).value;
+  //     const idFlota = document.getElementById("editarIdFlota").value;
+  //     const tipo = document.getElementById("editarTipoFlota").value;
+  //     const patente = document
+  //       .getElementById("editarPatenteFlota")
+  //       .value.trim()
+  //       .toUpperCase();
+  //     const nroChasis = document
+  //       .getElementById("editarNroChasisFlota")
+  //       .value.trim();
+  //     const marca = document.getElementById("editarMarcaFlota").value;
+  //     const modelo = document.getElementById("editarModeloFlota").value;
+  //     const año = document.getElementById("editarAñoFlota").value;
+  //     const capacidad = document.getElementById("editarCapacidadFlota").value;
+  //     const estado = document.getElementById("editarEstadoFlota").value;
+  //     const fechaIngreso = document.getElementById(
+  //       "editarFechaIngresoFlota"
+  //     ).value;
+  //     const observaciones = document.getElementById(
+  //       "editarObservacionesFlota"
+  //     ).value;
 
-      const registroModificado = [
-        idFlota,
-        tipo,
-        patente,
-        nroChasis,
-        marca,
-        modelo,
-        año,
-        capacidad,
-        estado,
-        fechaIngreso,
-        observaciones,
-        "Actualización de Registro",
-      ];
+  //     const registroModificado = [
+  //       idFlota,
+  //       tipo,
+  //       patente,
+  //       nroChasis,
+  //       marca,
+  //       modelo,
+  //       año,
+  //       capacidad,
+  //       estado,
+  //       fechaIngreso,
+  //       observaciones,
+  //       "Actualización de Registro",
+  //     ];
 
-      const resultado = await runGoogleFunction(
-        "actualizarRegistroFlota",
-        registroModificado
-      );
+  //     const resultado = await runGoogleFunction(
+  //       "actualizarRegistroFlota",
+  //       registroModificado
+  //     );
 
-      if (resultado === "success") {
-        $("#modalEditarFlota").modal("hide");
+  //     if (resultado === "success") {
+  //       $("#modalEditarFlota").modal("hide");
 
-        await Swal.fire({
-          icon: "success",
-          title: "Actualizado",
-          text: "El registro fue actualizado correctamente",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+  //       await Swal.fire({
+  //         icon: "success",
+  //         title: "Actualizado",
+  //         text: "El registro fue actualizado correctamente",
+  //         timer: 1500,
+  //         showConfirmButton: false,
+  //       });
 
-        await loadTableData(currentSheetName);
-      } else {
-        throw new Error("No se pudo actualizar en el backend.");
-      }
-    } catch (error) {
-      console.error("Error al guardar cambios:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error al actualizar",
-        text: error.message || "No se pudo actualizar correctamente",
-      });
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
-    }
-  };
+  //       await loadTableData(currentSheetName);
+  //     } else {
+  //       throw new Error("No se pudo actualizar en el backend.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error al guardar cambios:", error);
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Error al actualizar",
+  //       text: error.message || "No se pudo actualizar correctamente",
+  //     });
+  //   } finally {
+  //     btn.disabled = false;
+  //     btn.innerHTML = originalText;
+  //   }
+  // };
 
   // Helper para obtener datos del formulario
   function getFormData(formId) {
@@ -870,19 +886,14 @@
    * @param {...any} params - Parámetros que recibe
    * @returns {Promise<any>} - Resultado o error
    */
-  function runGoogleFunction(functionName, ...params) {
+  async function runGoogleFunction(nombreFuncion, data) {
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(resolve)
-        .withFailureHandler((error) => {
-          console.error("❌ Error en función GAS:", error);
-          Swal.fire("Error", "Se produjo un error en el servidor.", "error");
-          reject(error);
-        })
-        [functionName](...params);
+        .withFailureHandler(reject)
+        [nombreFuncion](data); // <-- SIEMPRE pasa data
     });
   }
-
   /**
    * Valida los campos requeridos de un formulario
    * @param {string} formId
@@ -2607,8 +2618,16 @@
         const estado = (row[9] || "").toLowerCase(); // Columna estado
         const mostrarRenovar = estado !== "renovada";
 
+        // Botón historial solo si el viaje está realizado
+        const btnHistorial = estado === "realizado"
+          ? `<button class="btn btn-sm btn-info btn-historial-incidentes" data-id="${String(row[0]).trim()}" title="Ver historial de incidentes">
+              <i class="bi bi-clock-history"></i>
+            </button>`
+          : "";
+
         return `
       <div class="d-flex justify-content-center gap-1">
+        ${btnHistorial}
         <button class="btn btn-sm btn-warning btn-editar-poliza" data-id="${
           row[0]
         }" title="Editar">
@@ -3284,7 +3303,7 @@
 
       const fechaSalida = formatearFecha(formData.fechasalidaviaje);
       const fechaLlegada = formatearFecha(formData.fechallegadaviaje);
-      const estado = fechaLlegada ? "realizado" : "en ruta";
+      const estado = formData.fechallegadaviaje ? "realizado" : "en ruta";
 
       const registro = [
         idViaje,
@@ -3348,7 +3367,7 @@
             ? "badge bg-success"
             : estado === "en ruta"
             ? "badge bg-warning text-dark"
-            : estado === "en mantención"
+            : estado === "mantención"
             ? "badge bg-danger"
             : "badge bg-secondary";
         return `<span class="${clase}">${data}</span>`;
@@ -3363,25 +3382,41 @@
         const idViaje = String(row[0]).trim();
         const estado = (row[12] || "").toLowerCase();
 
+        // Botón historial solo si el viaje está realizado
+        const btnHistorial = estado === "realizado"
+          ? `<button class="btn btn-sm btn-info btn-historial-incidentes" data-id="${idViaje}" title="Ver historial de incidentes">
+              <i class="bi bi-clock-history"></i>
+            </button>`
+          : "";
+
+        // ✅ Verifica estados que permiten reportar incidente
         const botonIncidente =
-          estado === "en ruta"
+          estado === "en ruta" || estado === "mantención"
             ? `<button class="btn btn-sm btn-secondary btn-reportar-incidente" 
-                data-id="${idViaje}" data-viaje='${JSON.stringify(row)}' 
+                data-id="${idViaje}" 
+                data-viaje="${encodeURIComponent(JSON.stringify(row))}" 
                 title="Reportar problema">
                 <i class="bi bi-tools"></i>
-             </button>`
+            </button>`
             : "";
 
         return `
         <div class="d-flex justify-content-center gap-1">
-          <button class="btn btn-sm btn-primary btn-ver-mas-viaje" data-id="${idViaje}" title="Ver más">
+          ${btnHistorial}
+          <button class="btn btn-sm btn-primary btn-ver-mas-viaje" 
+                  data-id="${idViaje}" 
+                  title="Ver más">
             <i class="bi bi-search"></i>
           </button>
           ${botonIncidente}
-          <button class="btn btn-sm btn-warning btn-editar-viaje" data-id="${idViaje}" title="Editar">
+          <button class="btn btn-sm btn-warning btn-editar-viaje" 
+                  data-id="${idViaje}" 
+                  title="Editar">
             <i class="bi bi-pencil-square"></i>
           </button>
-          <button class="btn btn-sm btn-danger btn-borrar-viaje" data-id="${idViaje}" title="Eliminar">
+          <button class="btn btn-sm btn-danger btn-borrar-viaje" 
+                  data-id="${idViaje}" 
+                  title="Eliminar">
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -3476,117 +3511,149 @@
         }
       });
 
-    // Botón reportar incidente
+    // Botón "Reportar Incidente"
     $(document)
       .off("click", ".btn-reportar-incidente")
       .on("click", ".btn-reportar-incidente", async function () {
-        const raw = $(this).data("viaje");
-        const viaje = typeof raw === "string" ? JSON.parse(raw) : raw;
-
-        if (!viaje || !viaje[0]) {
-          return Swal.fire(
-            "Error",
-            "No se pudo obtener el viaje desde el botón.",
-            "error"
-          );
-        }
-
-        const idViaje = viaje[0];
-        const nombreChofer = viaje[8];
-
         try {
-          const chofer = await runGoogleFunction(
-            "buscarChoferPorNombre",
-            nombreChofer
-          );
-          const patente = chofer?.[10]?.trim() || "Sin patente asociada";
+          const idViaje = $(this).data("id");
 
-          document.getElementById("incidenteIdViaje").value = idViaje;
-          document.getElementById("incidenteIdViajeVisual").value = idViaje;
-          document.getElementById("incidentePatente").value = patente;
-          document.getElementById("descripcionIncidente").value = "";
+          console.log("🟡 ID VIAJE AL REPORTAR:", idViaje); // LOG 1
 
-          const inputPatente = document.getElementById("incidentePatente");
-          if (patente === "Sin patente asociada") {
-            inputPatente.classList.add("text-danger", "fw-bold");
-          } else {
-            inputPatente.classList.remove("text-danger", "fw-bold");
+          if (!idViaje) {
+            console.error("ID de viaje no encontrado en el botón.");
+            Swal.fire("Error", "ID de viaje no válido.", "error");
+            return;
           }
 
-          const modalEl = document.getElementById("modalReportarIncidente");
-          const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-          modal.show();
+          // Asignar ID de viaje al título del modal
+          $("#incidente_id_viaje").text(idViaje);
+
+          // Rellenar campos ocultos del modal con datos del viaje
+          const viajeCodificado = $(this).data("viaje");
+          const viaje = JSON.parse(decodeURIComponent(viajeCodificado));
+
+          // Obtener la patente real del chofer desde la hoja de choferes
+          const nombreChofer = viaje[8];
+          let patenteChofer = "";
+          try {
+            const { datos: datosChoferes } = await runGoogleFunction(
+              "getData",
+              "Choferes"
+            );
+            const chofer = datosChoferes.find((row) => row[1] === nombreChofer);
+            patenteChofer = chofer ? chofer[10] : "";
+          } catch (e) {
+            patenteChofer = "";
+          }
+
+          $("#incidente_patente").val(patenteChofer || "No disponible");
+          $("#incidente_chofer").val(nombreChofer || "No disponible");
+          $("#incidente_fecha").val(new Date().toISOString().split("T")[0]);
+          $("#incidente_descripcion").val("");
+          $("#incidente_tipo").val("");
+          $("#incidente_reportado_por").val("");
+
+          // Mostrar modal
+          $("#modalIncidentes").modal("show");
+
+          console.log("🟢 Llamando a cargarHistorialIncidentes con:", idViaje); // LOG 2
+
+          await cargarHistorialIncidentes(idViaje);
         } catch (error) {
-          console.error("Error al cargar datos del incidente:", error);
+          console.error("Error al abrir el modal de incidentes:", error);
           Swal.fire(
             "Error",
-            "No se pudieron cargar los datos del viaje.",
+            "No se pudo abrir el modal de incidentes",
             "error"
           );
         }
       });
   }
 
-  document.getElementById("btnGuardarIncidente").onclick = async function () {
-    const btn = this;
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Reportando...`;
+  $("#btnGuardarIncidente").click(async function () {
+    const btn = $(this);
+    const originalText = btn.html();
 
-    const idViaje = document.getElementById("incidenteIdViaje").value;
-    const descripcion = document
-      .getElementById("descripcionIncidente")
-      .value.trim();
-
-    if (!descripcion) {
-      await Swal.fire(
-        "Campo requerido",
-        "Debes ingresar una descripción del incidente.",
-        "warning"
+    btn
+      .prop("disabled", true)
+      .html(
+        '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...'
       );
-      btn.disabled = false;
-      btn.innerHTML = originalHTML;
-      return;
-    }
 
     try {
-      await runGoogleFunction("reportarIncidente", idViaje, descripcion);
+      const fecha = $("#incidente_fecha").val();
+      const tipo = $("#incidente_tipo").val();
+      const descripcion = $("#incidente_descripcion").val();
+      const idViaje = $("#incidente_id_viaje").text();
+      const patente = $("#incidente_patente").val();
+      const chofer = $("#incidente_chofer").val();
+      const reportadoPor = $("#incidente_reportado_por").val();
 
-      const modal = bootstrap.Modal.getInstance(
-        document.getElementById("modalReportarIncidente")
-      );
-      modal.hide();
-      document.activeElement.blur();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Incidente reportado",
-        text: "El incidente fue registrado exitosamente.",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-      // ✅ Forzar recarga completa de la tabla
-      if (dataTableInstance) {
-        dataTableInstance.destroy();
-        dataTableInstance = null;
-        const tabla = document.getElementById("tablaPrueba");
-        tabla.querySelector("thead").innerHTML = "";
-        tabla.querySelector("tbody").innerHTML = "";
-        tabla.querySelector("tfoot").innerHTML = "";
+      if (
+        !fecha ||
+        !tipo ||
+        !descripcion ||
+        !idViaje ||
+        !patente ||
+        !chofer ||
+        !reportadoPor
+      ) {
+        Swal.fire(
+          "Campos incompletos",
+          "Por favor, completa todos los campos obligatorios.",
+          "warning"
+        );
+        return;
       }
 
-      cacheDatosPorModulo["Viajes"] = null;
-      cacheDatosPorModulo["Viajes_headers"] = null;
-      await loadTableData("Viajes");
+      const data = {
+        fecha,
+        tipo,
+        descripcion,
+        idViaje,
+        patente,
+        chofer,
+        reportadoPor,
+      };
+
+      const resultado = await runGoogleFunction("registrarIncidente", data);
+
+      if (resultado === "success") {
+        Swal.fire("Guardado", "Incidente registrado exitosamente.", "success");
+
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("modalIncidentes")
+        );
+        if (modal) modal.hide();
+
+        // Limpiar campos
+        $("#formNuevoIncidente")[0].reset();
+
+        // Limpiar caché y recargar tabla de viajes
+        cacheDatosPorModulo["Viajes"] = null;
+        cacheDatosPorModulo["Viajes_headers"] = null;
+        await loadTableData("Viajes");
+
+        // Recargar historial
+        if (typeof cargarHistorialIncidentes === "function") {
+          await cargarHistorialIncidentes(idViaje);
+        }
+      } else {
+        throw new Error("Error inesperado al guardar");
+      }
     } catch (error) {
-      console.error("❌ Error al registrar incidente:", error);
-      Swal.fire("Error", "No se pudo registrar el incidente.", "error");
+      console.error("Error al registrar incidente:", error);
+      Swal.fire(
+        "Error",
+        error.message || "No se pudo guardar el incidente",
+        "error"
+      );
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalHTML;
+      btn.prop("disabled", false).html(originalText);
     }
-  };
+  });
 
   async function cargarOpcionesViajeDesdeInfo() {
     try {
@@ -3634,36 +3701,43 @@
   }
 
   // 🔄 Cargar conductores con estado "disponible"
-  async function cargarConductoresDisponiblesViaje(idViajeActual = null) {
-    const { datos: choferes } = await runGoogleFunction("getData", "Choferes");
-    const { datos: viajes } = await runGoogleFunction("getData", "Viajes");
+  async function cargarConductoresDisponiblesViaje(conductorActual = null) {
+    const { datos: datosChoferes } = await runGoogleFunction("getData", "Choferes");
+    const { datos: datosViajes } = await runGoogleFunction("getData", "Viajes");
 
-    // 🔴 Obtener conductores ya asignados a viajes en ruta
-    const conductoresEnRuta = viajes
-      .filter((v) => v[12]?.toLowerCase() === "en ruta")
-      .filter((v) => v[0] !== idViajeActual) // Excluir el viaje actual si es edición
-      .map((v) => v[8]); // Nombre del conductor
+    // Obtén los conductores que están en viajes "en ruta" o "mantención"
+    const conductoresOcupados = datosViajes
+      .filter(row => ["en ruta", "mantención"].includes((row[12] || "").toLowerCase()))
+      .map(row => row[8]);
 
-    const disponibles = choferes.filter((c) => {
-      const estado = (c[9] || "").toLowerCase();
-      const nombre = c[1];
-      return estado === "disponible" && !conductoresEnRuta.includes(nombre);
-    });
+    // Detecta si es para agregar o editar
+    const select = conductorActual
+      ? document.getElementById("editarConductorViaje")
+      : document.getElementById("inputConductorViaje");
 
-    const selectAgregar = document.getElementById("inputConductorViaje");
-    const selectEditar = document.getElementById("editarConductorViaje");
+    select.innerHTML = '<option value="">Seleccione conductor</option>';
 
-    [selectAgregar, selectEditar].forEach((select) => {
-      if (!select) return;
-      select.innerHTML = '<option value="">Seleccione</option>';
-
-      disponibles.forEach((chofer) => {
+    datosChoferes.forEach(chofer => {
+      const nombre = chofer[1];
+      const estado = chofer[9] ? chofer[9].toLowerCase() : "";
+      // Al agregar: solo los disponibles
+      // Al editar: también el conductor actual aunque esté ocupado
+      if (
+        nombre &&
+        estado !== "baja" &&
+        (!conductoresOcupados.includes(nombre) || nombre === conductorActual)
+      ) {
         const option = document.createElement("option");
-        option.value = chofer[1];
-        option.textContent = chofer[1];
+        option.value = nombre;
+        option.textContent = nombre;
         select.appendChild(option);
-      });
+      }
     });
+
+    // Selecciona el conductor actual si está editando
+    if (conductorActual) {
+      select.value = conductorActual;
+    }
   }
 
   async function llenarSelectsViaje(tipo = "agregar") {
@@ -3745,14 +3819,14 @@
       formatearFechaParaInput(registro[2]);
 
     await llenarSelectsViaje("editar");
-    await cargarConductoresDisponiblesViaje(); // Muestra todos disponibles + actual
+    await cargarConductoresDisponiblesViaje(registro[8]); // Pasa el conductor actual
+    document.getElementById("editarConductorViaje").value = registro[8];
 
     document.getElementById("editarTipoViaje").value = registro[3];
     document.getElementById("editarClienteViaje").value = registro[4];
     document.getElementById("editarOrigenViaje").value = registro[5];
     document.getElementById("editarDestinoViaje").value = registro[6];
     document.getElementById("editarEmpresaViaje").value = registro[7];
-    document.getElementById("editarConductorViaje").value = registro[8];
     document.getElementById("editarContenedorViaje").value = registro[9];
     document.getElementById("editarGuiaViaje").value = registro[10];
     document.getElementById("editarFacturaViaje").value = registro[11];
@@ -3781,7 +3855,7 @@
         formData.origenviaje || "",
         formData.destinoviaje || "",
         formData.empresaviaje || "",
-        formData.conductorviaje || "",
+        formData.conductorviaje || "", // ¡Asegúrate de que esto esté!
         (formData.contenedorviaje || "").toUpperCase(),
         formData.guiaviaje || "",
         formData.facturaviaje || "",
@@ -3845,4 +3919,661 @@
       );
     });
   }
+
+  // Esta función debe estar ya en tu código (búscala y reemplázala)
+  function abrirModalIncidentes(idViaje) {
+    // Mostrar el modal (ya implementado en tu HTML)
+    $("#modalIncidentes").modal("show");
+
+    // Llamar a tu función existente obtenerIncidentesPorViaje
+    google.script.run
+      .withSuccessHandler(function (incidentes) {
+        console.log("Incidentes recibidos:", incidentes);
+
+        // Usa tu función existente para renderizar la tabla
+        if (incidentes && incidentes.length > 0) {
+          renderizarTablaIncidentes(incidentes); // Esta función ya existe en tu código
+        } else {
+          $("#cuerpoHistorialIncidentes").html(`
+          <tr>
+            <td colspan="7">No se encontraron incidentes</td>
+          </tr>
+        `);
+        }
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error al cargar incidentes:", error);
+        $("#cuerpoHistorialIncidentes").html(`
+        <tr>
+          <td colspan="7" class="text-danger">Error al cargar: ${error.message}</td>
+        </tr>
+      `);
+      })
+      .obtenerIncidentesPorViaje(idViaje); // Esta función ya está en tu utils.gs
+  }
+
+
+  async function registrarIncidenteDesdeFrontend() {
+    const idViaje = document.getElementById("incidente_id_viaje").textContent;
+    const fecha = document.getElementById("incidente_fecha").value;
+    const tipo = document.getElementById("incidente_tipo").value;
+    const descripcion = document.getElementById("incidente_descripcion").value;
+    const patente = document.getElementById("incidente_patente").value;
+    const chofer = document.getElementById("incidente_chofer").value;
+    const reportadoPor = document.getElementById(
+      "incidente_reportado_por"
+    ).value;
+
+    if (
+      !fecha ||
+      !tipo ||
+      !descripcion ||
+      !idViaje ||
+      !patente ||
+      !chofer ||
+      !reportadoPor
+    ) {
+      return Swal.fire(
+        "Campos incompletos",
+        "Por favor completa todos los campos obligatorios.",
+        "warning"
+      );
+    }
+
+    try {
+      const data = {
+        idViaje,
+        fecha,
+        tipo,
+        descripcion,
+        patente,
+        chofer,
+        reportadoPor,
+      };
+
+      const respuesta = await runGoogleFunction("registrarIncidente", data);
+
+      if (respuesta === "success") {
+        await Swal.fire(
+          "Guardado",
+          "El incidente fue registrado exitosamente.",
+          "success"
+        );
+
+        cargarHistorialIncidentes(idViaje); // ✅ recargar historial
+        bootstrap.Modal.getInstance(
+          document.getElementById("modalIncidentes")
+        ).hide(); // ✅ cerrar modal
+      } else {
+        throw new Error("No se pudo guardar el incidente.");
+      }
+    } catch (error) {
+      console.error("Error al registrar incidente:", error);
+      Swal.fire("Error", "No se pudo guardar el incidente", "error");
+    }
+  }
+
+  async function resolverIncidente(idIncidente, idViaje) {
+    const { value: observacion } = await Swal.fire({
+      title: "Resolver incidente",
+      input: "text",
+      inputLabel: "Observaciones",
+      inputPlaceholder: "Describe la solución aplicada...",
+      showCancelButton: true,
+      confirmButtonText: "Marcar como resuelto",
+    });
+
+    if (observacion) {
+      const datos = {
+        idIncidente,
+        observacion,
+        fechaSolucion: new Date().toISOString().split("T")[0],
+      };
+
+      const resultado = await runGoogleFunction(
+        "marcarIncidenteResuelto",
+        datos
+      );
+      if (resultado === "success") {
+        Swal.fire(
+          "Resuelto",
+          "El incidente fue marcado como resuelto.",
+          "success"
+        );
+        await cargarHistorialIncidentes(idViaje);
+      }
+    }
+  }
+
+  async function cargarHistorialIncidentes(idViaje) {
+    const tbody = $("#cuerpoHistorialIncidentes");
+
+    try {
+      // Mostrar estado de carga
+      tbody.html(`
+      <tr>
+        <td colspan="7" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </td>
+      </tr>
+    `);
+
+      // Llamada segura al backend
+      const incidentes = await new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler((data) => {
+            resolve(Array.isArray(data) ? data : []);
+          })
+          .withFailureHandler((error) => {
+            console.error("Error del servidor:", error);
+            resolve([]); // Asegura que siempre sea array
+          })
+          .obtenerIncidentesPorViaje(idViaje);
+      });
+
+      renderizarIncidentes(incidentes);
+    } catch (error) {
+      console.error("Error inesperado:", error);
+      tbody.html(`
+      <tr>
+        <td colspan="7" class="text-center text-danger py-4">
+          <i class="bi bi-exclamation-triangle"></i> Error al cargar: ${error.message}
+        </td>
+      </tr>
+    `);
+    }
+  }
+
+  // En js.html, actualizar el evento del botón "Resolver":
+  $(document).on("click", ".btn-resolver-incidente", async function () {
+    const idIncidente = $(this).data("id");
+    const idViaje = $(this).data("idviaje");
+
+    const { value: observacion } = await Swal.fire({
+      title: "Resolver incidente",
+      input: "text",
+      inputLabel: "Observaciones",
+      inputPlaceholder: "Describe la solución...",
+      showCancelButton: true,
+      confirmButtonText: "Confirmar",
+    });
+
+    if (observacion === undefined) return;
+
+    try {
+      const data = {
+        idIncidente,
+        fechaSolucion: new Date().toISOString().split("T")[0],
+        observacion,
+      };
+
+      const resultado = await runGoogleFunction(
+        "marcarIncidenteSolucionado",
+        data
+      );
+
+      if (resultado.exito) {
+        await Swal.fire({
+          icon: "success",
+          title: resultado.estadoActualizado
+            ? "¡Viaje actualizado!"
+            : "Incidente resuelto",
+          text: resultado.estadoActualizado
+            ? "Todos los incidentes están resueltos. El viaje ahora está 'En ruta'."
+            : "El incidente fue marcado como resuelto.",
+        });
+
+        // Recargar la tabla de incidentes y la de viajes
+        await cargarHistorialIncidentes(idViaje);
+        cacheDatosPorModulo["Viajes"] = null;
+        await loadTableData("Viajes");
+      } else {
+        throw new Error(resultado.mensaje);
+      }
+    } catch (error) {
+      Swal.fire("Error", error.message, "error");
+    }
+  });
+
+  function renderizarTablaIncidentes(incidentes) {
+    const tbody = $("#cuerpoHistorialIncidentes");
+    tbody.empty();
+
+    incidentes.forEach((incidente) => {
+      const btnSolucionar =
+        incidente.estado !== "Resuelto"
+          ? `<button class="btn btn-sm btn-success btn-solucionar-incidente" data-id="${incidente.id}" data-idviaje="${incidente.idViaje}">
+         <i class="bi bi-check-lg"></i>
+       </button>`
+          : `<span class="badge bg-success">Resuelto</span>`;
+
+      const row = `
+      <tr>
+        <td>${incidente.id}</td>
+        <td>${incidente.fecha}</td>
+        <td>${incidente.tipo}</td>
+        <td>${incidente.descripcion}</td>
+        <td><span class="badge ${getEstadoBadgeClass(incidente.estado)}">${
+        incidente.estado
+      }</span></td>
+        <td>${incidente.reportadoPor}</td>
+        <td>${btnSolucionar}</td>
+      </tr>
+    `;
+      tbody.append(row);
+    });
+  }
+
+  // Función auxiliar para clases de badges
+  function getEstadoBadgeClass(estado) {
+    const map = {
+      Abierto: "bg-danger",
+      "En proceso": "bg-warning text-dark",
+      Resuelto: "bg-success",
+      Cancelado: "bg-secondary",
+    };
+    return map[estado] || "bg-light text-dark";
+  }
+
+  function mostrarMensajeTablaVacia() {
+    const cuerpoHistorial = document.getElementById(
+      "cuerpoHistorialIncidentes"
+    );
+    if (cuerpoHistorial) {
+      cuerpoHistorial.innerHTML =
+        "<tr><td colspan='7'>No hay incidentes registrados para este viaje.</td></tr>";
+    }
+  }
+
+  function mostrarErrorEnTablaHistorial(mensaje) {
+    const cuerpoHistorial = document.getElementById(
+      "cuerpoHistorialIncidentes"
+    );
+    if (cuerpoHistorial) {
+      cuerpoHistorial.innerHTML = `<tr><td colspan='7'>${mensaje}</td></tr>`;
+    }
+  }
+
+  // Función auxiliar para clases de badges (debe estar en tu código)
+  function getBadgeClass(estado) {
+    const map = {
+      Reportado: "bg-warning",
+      "En proceso": "bg-info",
+      Resuelto: "bg-success",
+      Cancelado: "bg-secondary",
+    };
+    return map[estado] || "bg-light text-dark";
+  }
+
+  function cargarFormularioIncidente(viaje, patente, chofer) {
+    // Validar existencia del formulario antes de usarlo
+    const fecha = document.getElementById("incidente_fecha");
+    const tipo = document.getElementById("incidente_tipo");
+    const descripcion = document.getElementById("incidente_descripcion");
+    const patenteInput = document.getElementById("incidente_patente");
+    const choferInput = document.getElementById("incidente_chofer");
+    const reportadoPor = document.getElementById("incidente_reportado_por");
+
+    if (
+      !fecha ||
+      !tipo ||
+      !descripcion ||
+      !patenteInput ||
+      !choferInput ||
+      !reportadoPor
+    ) {
+      console.error("Uno o más campos del formulario no existen en el DOM.");
+      return;
+    }
+
+    // Cargar los valores en el formulario
+    fecha.value = new Date().toISOString().split("T")[0];
+    tipo.value = "";
+    descripcion.value = "";
+    patenteInput.value = patente || "No disponible";
+    choferInput.value = chofer || "No disponible";
+    reportadoPor.value = "Matias Rojas"; // o tu lógica para preselección
+
+    // Mostrar el modal
+    const modal = bootstrap.Modal.getOrCreateInstance(
+      document.getElementById("modalIncidentes")
+    );
+    modal.show();
+  }
+
+  function estadoColor(estado) {
+    const e = estado.toLowerCase();
+    if (e === "abierto") return "danger";
+    if (e === "resuelto") return "success";
+    if (e === "en proceso") return "warning";
+    return "secondary";
+  }
+
+  function obtenerRegistroPorId(data, id) {
+    return data.find((item) => String(item[0]).trim() === String(id).trim());
+  }
+
+  // Manejador para el botón "Solucionar" en la tabla
+  $(document).on("click", ".btn-solucionar-incidente", function () {
+    const incidenteId = $(this).data("id");
+    const viajeId = $("#incidente_id_viaje").text();
+
+    // Resetear el formulario completamente
+    $("#formSolucionIncidente")[0].reset();
+
+    // Establecer valores iniciales
+    $("#incidenteIdSolucion").val(incidenteId);
+    $("#viajeIdSolucion").val(viajeId);
+    $("#fechaSolucion").val(new Date().toISOString().split("T")[0]); // Fecha actual
+
+    // Limpiar específicamente el textarea (por si el reset no lo hace)
+    $("#observacionSolucion").val("");
+
+    new bootstrap.Modal(
+      document.getElementById("modalSolucionarIncidente")
+    ).show();
+  });
+
+  // Manejador para confirmar solución
+  $("#btnConfirmarSolucion").click(async function () {
+    const btn = $(this);
+    const originalText = btn.html();
+
+    btn
+      .prop("disabled", true)
+      .html(
+        '<span class="spinner-border spinner-border-sm" role="status"></span> Procesando...'
+      );
+
+    try {
+      const data = {
+        idIncidente: $("#incidenteIdSolucion").val(),
+        idViaje: $("#viajeIdSolucion").val(),
+        fechaSolucion: $("#fechaSolucion").val(),
+        observacion: $("#observacionSolucion").val(),
+      };
+
+      const resultado = await new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .marcarIncidenteSolucionado(data);
+      });
+
+      if (!resultado.exito) {
+        throw new Error(resultado.mensaje || "Error desconocido");
+      }
+
+      // Actualiza historial de incidentes
+      await cargarHistorialIncidentes(data.idViaje);
+
+      // Cierra ambos modales y elimina overlay
+      $("#modalSolucionarIncidente").modal("hide");
+      $("#modalIncidentes").modal("hide");
+      $(".modal-backdrop").remove();
+      $("body").removeClass("modal-open");
+
+      // Actualiza solo la fila del viaje en el DataTable si recibimos el viaje actualizado
+      if (resultado.viajeActualizado) {
+        const idViaje = resultado.viajeActualizado[0];
+        const nuevoEstado = resultado.viajeActualizado[12];
+        const tabla = $("#tablaPrueba").DataTable();
+        const rowIdx = tabla
+          .rows()
+          .eq(0)
+          .filter(function (idx) {
+            return tabla.row(idx).data()[0] === idViaje;
+          });
+        if (rowIdx.length) {
+          tabla
+            .cell(rowIdx[0], 12)
+            .data(
+              `<span class="badge ${
+                nuevoEstado === "en ruta" ? "bg-success" : "bg-danger"
+              } badge-estado">${nuevoEstado}</span>`
+            )
+            .draw(false);
+        }
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: resultado.estadoActualizado
+          ? "¡Viaje actualizado!"
+          : "Incidente resuelto",
+        text: resultado.mensaje,
+        timer: 2000,
+      });
+
+      await new Promise((r) => setTimeout(r, 800)); // Espera 800ms
+
+      console.log("🟢 Limpiando caché y recargando tabla Viajes...");
+      cacheDatosPorModulo["Viajes"] = null;
+      cacheDatosPorModulo["Viajes_headers"] = null;
+      await loadTableData("Viajes");
+      console.log("🟢 Tabla Viajes recargada.");
+    } catch (error) {
+      console.error("Error al resolver incidente:", error);
+      Swal.fire("Error", error.message, "error");
+    } finally {
+      btn
+        .prop("disabled", false)
+        .html('<i class="bi bi-check-circle"></i> Confirmar Solución');
+    }
+  });
+
+  // Función para verificar estado del viaje
+  // Función para verificar estado del viaje (opcional)
+  async function verificarEstadoViaje(idViaje) {
+    const hojaIncidentes = getSheet("Incidentes");
+    const incidentes = hojaIncidentes.getDataRange().getValues();
+    const abiertos = incidentes.filter(
+      (row) => String(row[2]) === String(idViaje) && row[7] === "Abierto"
+    );
+
+    const hojaViajes = getSheet("Viajes");
+    const viajes = hojaViajes.getDataRange().getValues();
+    const colEstado = obtenerIndiceColumna(hojaViajes, "Estado");
+    const colFechaLlegada = obtenerIndiceColumna(hojaViajes, "Fecha Llegada");
+
+    for (let i = 1; i < viajes.length; i++) {
+      if (String(viajes[i][0]) === String(idViaje)) {
+        let nuevoEstado;
+        if (abiertos.length > 0) {
+          nuevoEstado = "mantención";
+        } else if (viajes[i][colFechaLlegada]) {
+          nuevoEstado = "realizado";
+        } else {
+          nuevoEstado = "en ruta";
+        }
+        hojaViajes.getRange(i + 1, colEstado).setValue(nuevoEstado);
+        break;
+      }
+    }
+  }
+
+  // Y en utils.gs:
+  function obtenerEstadoViaje(idViaje) {
+    const sheet = getSheet("Viajes");
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const idCol = headers.indexOf("ID");
+    const estadoCol = headers.indexOf("Estado");
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === idViaje) {
+        return data[i][estadoCol];
+      }
+    }
+
+    throw new Error("Viaje no encontrado");
+  }
+
+  /**
+   * Renderiza la tabla de incidentes en el modal
+   * @param {Array} incidentes - Lista de incidentes
+   */
+  function renderizarIncidentes(incidentes) {
+    const tbody = $("#cuerpoHistorialIncidentes");
+    tbody.empty();
+
+    // Validación extrema
+    if (!Array.isArray(incidentes)) {
+      console.error("Error: incidentes no es un array", incidentes);
+      incidentes = [];
+    }
+
+    if (incidentes.length === 0) {
+      tbody.html(`
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+          <i class="bi bi-database-exclamation"></i> No se encontraron incidentes
+        </td>
+      </tr>
+    `);
+      return;
+    }
+
+    // Generar HTML seguro
+    try {
+      const html = incidentes
+        .map(
+          (incidente) => `
+      <tr>
+        <td>${escapeHtml(incidente.id || "")}</td>
+        <td>${escapeHtml(incidente.fecha || "")}</td>
+        <td>${escapeHtml(incidente.tipo || "")}</td>
+        <td>${escapeHtml(incidente.descripcion || "")}</td>
+        <td><span class="badge ${getEstadoBadgeClass(incidente.estado)}">
+              ${escapeHtml(incidente.estado || "")}
+            </span>
+        </td>
+        <td>${escapeHtml(incidente.reportadoPor || "")}</td>
+        <td>
+          ${
+            incidente.estado === "Resuelto"
+              ? '<span class="badge bg-success">Resuelto</span>'
+              : `<button class="btn btn-sm btn-success btn-solucionar-incidente" 
+                    data-id="${escapeHtml(incidente.id || "")}" 
+                    data-idviaje="${escapeHtml(incidente.idViaje || "")}">
+               <i class="bi bi-check-lg"></i>
+             </button>`
+          }
+        </td>
+      </tr>
+    `
+        )
+        .join("");
+
+      tbody.html(html);
+    } catch (e) {
+      console.error("Error al renderizar:", e);
+      tbody.html(`
+      <tr>
+        <td colspan="7" class="text-center text-danger py-4">
+          <i class="bi bi-bug"></i> Error al mostrar datos
+        </td>
+      </tr>
+    `);
+    }
+  }
+
+  // Función auxiliar para formatear fechas (agregar al mismo archivo)
+  function formatDate(dateString) {
+    try {
+      const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+      return new Date(dateString).toLocaleDateString("es-CL", options);
+    } catch (e) {
+      return dateString; // Devuelve el valor original si no es fecha válida
+    }
+  }
+
+  // Función auxiliar para clases de badges (debe existir)
+  function getEstadoBadgeClass(estado) {
+    const clases = {
+      Abierto: "bg-danger",
+      "En proceso": "bg-warning text-dark",
+      Resuelto: "bg-success",
+      Solucionado: "bg-success",
+      Cancelado: "bg-secondary",
+    };
+    return clases[estado] || "bg-light text-dark";
+  }
+
+  // Función auxiliar para seguridad XSS
+  function escapeHtml(str) {
+    return str
+      .toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  console.log("🔍 Verificando estructura de Incidentes...");
+  google.script.run
+    .withSuccessHandler((data) => {
+      console.log("Estructura de la hoja Incidentes:", data);
+    })
+    .getSheetHeaders("Incidentes");
+
+  $("#btnAsideViajes").click(async function () {
+    cacheDatosPorModulo["Viajes"] = null;
+    cacheDatosPorModulo["Viajes_headers"] = null;
+    await loadTableData("Viajes");
+  });
+
+  function crearFiltrosViajes() {
+    const contenedor = document.getElementById("filtros-viajes");
+    const datos = cacheDatosPorModulo["Viajes"] || [];
+
+    // Contar estados
+    const conteo = {
+      "en ruta": 0,
+      "mantención": 0,
+      "realizado": 0,
+    };
+
+    datos.forEach((row) => {
+      const estado = (row[12] || "").toLowerCase();
+      if (conteo.hasOwnProperty(estado)) conteo[estado]++;
+    });
+
+    const total = datos.length;
+
+    contenedor.innerHTML = `
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <button id="btnFiltroViajeTodos" class="btn btn-outline-primary btn-sm">Todos (${total})</button>
+      <button id="btnFiltroViajeEnRuta" class="btn btn-outline-warning btn-sm">En ruta (${conteo["en ruta"]})</button>
+      <button id="btnFiltroViajeMantencion" class="btn btn-outline-danger btn-sm">Mantención (${conteo["mantención"]})</button>
+      <button id="btnFiltroViajeRealizado" class="btn btn-outline-success btn-sm">Realizado (${conteo["realizado"]})</button>
+    </div>
+  `;
+    contenedor.style.display = "flex";
+
+    // Event listeners para filtros
+    document.getElementById("btnFiltroViajeTodos").onclick = () => aplicarFiltroViaje("");
+    document.getElementById("btnFiltroViajeEnRuta").onclick = () => aplicarFiltroViaje("en ruta");
+    document.getElementById("btnFiltroViajeMantencion").onclick = () => aplicarFiltroViaje("mantención");
+    document.getElementById("btnFiltroViajeRealizado").onclick = () => aplicarFiltroViaje("realizado");
+  }
+
+  function aplicarFiltroViaje(estado) {
+    const tabla = $("#tablaPrueba").DataTable();
+    const columnaEstado = 12; // Ajusta si cambia el índice de la columna Estado
+
+    tabla.column(columnaEstado).search(estado, true, false).draw();
+  }
+
+  $(document).on("click", ".btn-historial-incidentes", async function () {
+    const idViaje = $(this).data("id");
+    // Abre el modal de incidentes y carga el historial
+    $("#incidente_id_viaje").text(idViaje);
+    $("#modalIncidentes").modal("show");
+    await cargarHistorialIncidentes(idViaje);
+  });
 </script>
