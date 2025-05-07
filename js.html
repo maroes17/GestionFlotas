@@ -190,6 +190,9 @@
   document
     .querySelector("#viajesBtn")
     .addEventListener("click", () => loadTableData("Viajes"));
+  document
+    .querySelector("#gastosBtn")
+    .addEventListener("click", () => loadGastosModule());
 
   // Función optimizada para cargar datos
   async function loadTableData(sheetName) {
@@ -271,15 +274,31 @@
         createActionButtons();
         updateTable(object.headers, object.datos);
 
-        // ✅ Mostrar filtros solo si es sección Polizas
-        if (sheetName === "Polizas") {
-          crearFiltrosPolizas();
-          filtrosPolizasContainer.style.display = "flex";
+        // Mostrar filtros solo en módulos específicos
+        if (filtrosPolizasContainer) {
+          filtrosPolizasContainer.style.display = "none";
+          filtrosPolizasContainer.innerHTML = "";
         }
 
-        if (sheetName === "Viajes") {
-          crearFiltrosViajes();
-          document.getElementById("filtros-viajes").style.display = "flex";
+        // Mostrar filtros de estados de pólizas si es el módulo correspondiente
+        if (sheetName === "Polizas" && filtrosPolizasContainer) {
+          filtrosPolizasContainer.style.display = "flex";
+          filtrosPolizasContainer.innerHTML = `
+        <button class="btn btn-outline-primary btn-sm" onclick="filtrarPolizas('vigente')">Vigentes</button>
+        <button class="btn btn-outline-warning btn-sm" onclick="filtrarPolizas('por vencer')">Por Vencer</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="filtrarPolizas('vencida')">Vencidas</button>
+        <button class="btn btn-outline-success btn-sm" onclick="filtrarPolizas('renovada')">Renovadas</button>
+      `;
+        }
+
+        if (document.getElementById("filtros-viajes")) {
+          document.getElementById("filtros-viajes").style.display =
+            sheetName === "Viajes" ? "flex" : "none";
+          if (sheetName === "Viajes") {
+            crearFiltrosViajes();
+          } else {
+            document.getElementById("filtros-viajes").innerHTML = "";
+          }
         }
       } catch (error) {
         console.error("Error al cargar datos:", error);
@@ -298,7 +317,7 @@
     const actionsDiv = document.getElementById("action-buttons");
     actionsDiv.innerHTML = "";
 
-    // Botón Actualizar
+    // Botón Actualizar (siempre visible)
     const refreshBtn = createButton(
       "btn-outline-primary",
       "bi-arrow-clockwise",
@@ -310,30 +329,57 @@
       }
     );
 
-    // Botón Agregar
-    const addNewBtn = createButton(
-      "btn-outline-success",
-      "bi-plus-circle",
-      "Agregar",
-      async () => {
-        if (currentSheetName === "Viajes") {
-          await showAddModal("modalAgregarViaje", "Registrar nuevo viaje");
-        } else if (currentSheetName === "Choferes") {
-          showAddModal("modalAgregarChofer", "Agregar nuevo Chofer");
-        } else if (currentSheetName === "Semirremolque") {
+    actionsDiv.append(refreshBtn);
+
+    // Botones específicos para cada módulo
+    if (currentSheetName === "Gastos" || currentSheetName === "Anticipos") {
+      // Se han eliminado los botones de Agregar Gasto y Agregar Anticipo
+      // Solo mantenemos el botón de Actualizar
+    } else if (currentSheetName === "Polizas") {
+      const addPolizaBtn = createButton(
+        "btn-outline-success",
+        "bi-plus-circle",
+        "Agregar Póliza",
+        () => showAddModal("modalAgregarPoliza", "Agregar nueva póliza")
+      );
+      actionsDiv.append(addPolizaBtn);
+    } else if (currentSheetName === "Viajes") {
+      const addViajeBtn = createButton(
+        "btn-outline-success",
+        "bi-plus-circle",
+        "Agregar Viaje",
+        () => showAddModal("modalAgregarViaje", "Agregar nuevo viaje")
+      );
+      actionsDiv.append(addViajeBtn);
+    } else if (currentSheetName === "Flota") {
+      const addFlotaBtn = createButton(
+        "btn-outline-success",
+        "bi-plus-circle",
+        "Agregar Flota",
+        () => showAddModal("modalAgregarFlota", "Agregar nuevo vehículo")
+      );
+      actionsDiv.append(addFlotaBtn);
+    } else if (currentSheetName === "Semirremolque") {
+      const addSemiBtn = createButton(
+        "btn-outline-success",
+        "bi-plus-circle",
+        "Agregar Semirremolque",
+        () =>
           showAddModal(
             "modalAgregarSemirremolque",
-            "Agregar nuevo Semirremolque"
-          );
-        } else if (currentSheetName === "Polizas") {
-          showAddModal("modalAgregarPoliza", "Agregar nueva póliza");
-        } else if (currentSheetName === "Viajes") {
-          showAddModal("modalAgregarViaje", "Registrar nuevo viaje");
-        }
-      }
-    );
-
-    actionsDiv.append(refreshBtn, addNewBtn);
+            "Agregar nuevo semirremolque"
+          )
+      );
+      actionsDiv.append(addSemiBtn);
+    } else if (currentSheetName === "Choferes") {
+      const addChoferBtn = createButton(
+        "btn-outline-success",
+        "bi-plus-circle",
+        "Agregar Chofer",
+        () => showAddModal("modalAgregarChofer", "Agregar nuevo chofer")
+      );
+      actionsDiv.append(addChoferBtn);
+    }
   }
 
   // Helper para crear botones
@@ -2619,11 +2665,14 @@
         const mostrarRenovar = estado !== "renovada";
 
         // Botón historial solo si el viaje está realizado
-        const btnHistorial = estado === "realizado"
-          ? `<button class="btn btn-sm btn-info btn-historial-incidentes" data-id="${String(row[0]).trim()}" title="Ver historial de incidentes">
+        const btnHistorial =
+          estado === "realizado"
+            ? `<button class="btn btn-sm btn-info btn-historial-incidentes" data-id="${String(
+                row[0]
+              ).trim()}" title="Ver historial de incidentes">
               <i class="bi bi-clock-history"></i>
             </button>`
-          : "";
+            : "";
 
         return `
       <div class="d-flex justify-content-center gap-1">
@@ -3193,46 +3242,30 @@
     });
 
   function crearFiltrosPolizas() {
-    const contenedor = document.getElementById("filtros-polizas");
-    const datos = cacheDatosPorModulo["Polizas"] || [];
+    const filtrosContainer = document.getElementById("filtros-polizas");
+    filtrosContainer.innerHTML = "";
 
-    // Contar estados
-    const conteo = {
-      vigente: 0,
-      "por vencer": 0,
-      vencida: 0,
-      renovada: 0,
-    };
+    // Filtros por estado
+    const estadosPoliza = [
+      {text: "Vigentes", estado: "vigente", class: "btn-outline-success"},
+      {text: "Por Vencer", estado: "por vencer", class: "btn-outline-warning"},
+      {text: "Vencidas", estado: "vencida", class: "btn-outline-danger"},
+      {text: "Renovadas", estado: "renovada", class: "btn-outline-info"}
+    ];
 
-    datos.forEach((row) => {
-      const estado = (row[9] || "").toLowerCase(); // columna estado
-      if (conteo.hasOwnProperty(estado)) conteo[estado]++;
+    estadosPoliza.forEach((item) => {
+      const btn = document.createElement("button");
+      btn.className = `btn btn-sm ${item.class}`;
+      btn.textContent = item.text;
+      btn.onclick = () => filtrarPolizas(item.estado);
+      filtrosContainer.appendChild(btn);
     });
+  }
 
-    const total = datos.length;
-
-    contenedor.innerHTML = `
-    <div class="d-flex flex-wrap justify-content-center gap-2">
-      <button id="btnFiltroPolizaTodos" class="btn btn-outline-primary btn-sm">Todas (${total})</button>
-      <button id="btnFiltroPolizaVigente" class="btn btn-outline-success btn-sm">Vigente (${conteo.vigente})</button>
-      <button id="btnFiltroPolizaPorVencer" class="btn btn-outline-warning btn-sm">Por Vencer (${conteo["por vencer"]})</button>
-      <button id="btnFiltroPolizaVencida" class="btn btn-outline-danger btn-sm">Vencida (${conteo.vencida})</button>
-      <button id="btnFiltroPolizaRenovada" class="btn btn-outline-secondary btn-sm">Renovada (${conteo.renovada})</button>
-    </div>
-  `;
-    contenedor.style.display = "flex";
-
-    // Event listeners para filtros
-    document.getElementById("btnFiltroPolizaTodos").onclick = () =>
-      aplicarFiltroPoliza("");
-    document.getElementById("btnFiltroPolizaVigente").onclick = () =>
-      aplicarFiltroPoliza("vigente");
-    document.getElementById("btnFiltroPolizaPorVencer").onclick = () =>
-      aplicarFiltroPoliza("por vencer");
-    document.getElementById("btnFiltroPolizaVencida").onclick = () =>
-      aplicarFiltroPoliza("vencida");
-    document.getElementById("btnFiltroPolizaRenovada").onclick = () =>
-      aplicarFiltroPoliza("renovada");
+  function filtrarPolizas(estado) {
+    if (dataTableInstance) {
+        dataTableInstance.column(9).search(estado).draw(); // Asumiendo que la columna 9 es la de estado
+    }
   }
 
   function aplicarFiltroPoliza(estado) {
@@ -3383,11 +3416,12 @@
         const estado = (row[12] || "").toLowerCase();
 
         // Botón historial solo si el viaje está realizado
-        const btnHistorial = estado === "realizado"
-          ? `<button class="btn btn-sm btn-info btn-historial-incidentes" data-id="${idViaje}" title="Ver historial de incidentes">
+        const btnHistorial =
+          estado === "realizado"
+            ? `<button class="btn btn-sm btn-info btn-historial-incidentes" data-id="${idViaje}" title="Ver historial de incidentes">
               <i class="bi bi-clock-history"></i>
             </button>`
-          : "";
+            : "";
 
         // ✅ Verifica estados que permiten reportar incidente
         const botonIncidente =
@@ -3702,13 +3736,18 @@
 
   // 🔄 Cargar conductores con estado "disponible"
   async function cargarConductoresDisponiblesViaje(conductorActual = null) {
-    const { datos: datosChoferes } = await runGoogleFunction("getData", "Choferes");
+    const { datos: datosChoferes } = await runGoogleFunction(
+      "getData",
+      "Choferes"
+    );
     const { datos: datosViajes } = await runGoogleFunction("getData", "Viajes");
 
     // Obtén los conductores que están en viajes "en ruta" o "mantención"
     const conductoresOcupados = datosViajes
-      .filter(row => ["en ruta", "mantención"].includes((row[12] || "").toLowerCase()))
-      .map(row => row[8]);
+      .filter((row) =>
+        ["en ruta", "mantención"].includes((row[12] || "").toLowerCase())
+      )
+      .map((row) => row[8]);
 
     // Detecta si es para agregar o editar
     const select = conductorActual
@@ -3717,7 +3756,7 @@
 
     select.innerHTML = '<option value="">Seleccione conductor</option>';
 
-    datosChoferes.forEach(chofer => {
+    datosChoferes.forEach((chofer) => {
       const nombre = chofer[1];
       const estado = chofer[9] ? chofer[9].toLowerCase() : "";
       // Al agregar: solo los disponibles
@@ -3951,7 +3990,6 @@
       })
       .obtenerIncidentesPorViaje(idViaje); // Esta función ya está en tu utils.gs
   }
-
 
   async function registrarIncidenteDesdeFrontend() {
     const idViaje = document.getElementById("incidente_id_viaje").textContent;
@@ -4534,8 +4572,8 @@
     // Contar estados
     const conteo = {
       "en ruta": 0,
-      "mantención": 0,
-      "realizado": 0,
+      mantención: 0,
+      realizado: 0,
     };
 
     datos.forEach((row) => {
@@ -4556,10 +4594,14 @@
     contenedor.style.display = "flex";
 
     // Event listeners para filtros
-    document.getElementById("btnFiltroViajeTodos").onclick = () => aplicarFiltroViaje("");
-    document.getElementById("btnFiltroViajeEnRuta").onclick = () => aplicarFiltroViaje("en ruta");
-    document.getElementById("btnFiltroViajeMantencion").onclick = () => aplicarFiltroViaje("mantención");
-    document.getElementById("btnFiltroViajeRealizado").onclick = () => aplicarFiltroViaje("realizado");
+    document.getElementById("btnFiltroViajeTodos").onclick = () =>
+      aplicarFiltroViaje("");
+    document.getElementById("btnFiltroViajeEnRuta").onclick = () =>
+      aplicarFiltroViaje("en ruta");
+    document.getElementById("btnFiltroViajeMantencion").onclick = () =>
+      aplicarFiltroViaje("mantención");
+    document.getElementById("btnFiltroViajeRealizado").onclick = () =>
+      aplicarFiltroViaje("realizado");
   }
 
   function aplicarFiltroViaje(estado) {
@@ -4576,4 +4618,147 @@
     $("#modalIncidentes").modal("show");
     await cargarHistorialIncidentes(idViaje);
   });
+
+  // --------------------------------------
+  // Módulo Gastos y Anticipos
+  // --------------------------------------
+
+  async function loadGastosModule() {
+    try {
+      // Ocultar y limpiar contenedores de otros módulos
+      if (document.getElementById("filtros-choferes")) {
+        document.getElementById("filtros-choferes").style.display = "none";
+        document.getElementById("filtros-choferes").innerHTML = "";
+      }
+      if (document.getElementById("cards-choferes")) {
+        document.getElementById("cards-choferes").style.display = "none";
+        document.getElementById("cards-choferes").innerHTML = "";
+      }
+      if (document.getElementById("filtros-polizas")) {
+        document.getElementById("filtros-polizas").style.display = "none";
+        document.getElementById("filtros-polizas").innerHTML = "";
+      }
+      if (document.getElementById("filtros-viajes")) {
+        document.getElementById("filtros-viajes").style.display = "none";
+        document.getElementById("filtros-viajes").innerHTML = "";
+      }
+      // Limpiar contenedor de botones de acción
+      if (document.getElementById("action-buttons")) {
+        document.getElementById("action-buttons").innerHTML = "";
+      }
+
+      // Mostrar solo el contenedor de gastos (tablaPrueba)
+      document.getElementById("tablaPrueba").style.display = "table";
+      document.getElementById("currentSectionTitle").textContent =
+        "Gastos y Anticipos";
+      document.getElementById("tablaPrueba").innerHTML = `
+      <tr><td class="text-center py-5" colspan="100%">
+      Cargando datos... <div class="spinner-border spinner-border-sm ms-2" role="status">
+      <span class="visually-hidden">Cargando...</span></div></td></tr>`;
+
+      // Cargar datos
+      const [gastos, anticipos, choferes] = await Promise.all([
+        runGoogleFunction("getData", "Gastos"),
+        runGoogleFunction("getData", "Anticipos"),
+        runGoogleFunction("getData", "Choferes"),
+      ]);
+
+      // Renderizar botones y controles específicos de gastos
+      crearBotonesGastos();
+
+      // Limpiar tabla
+      document.getElementById("tablaPrueba").innerHTML = "";
+
+      // Crear pestañas
+      const tabContainer = document.createElement("div");
+      tabContainer.innerHTML = `
+      <ul class="nav nav-tabs mb-4" id="gastosTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos" type="button" role="tab">Gastos</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="anticipos-tab" data-bs-toggle="tab" data-bs-target="#anticipos" type="button" role="tab">Anticipos</button>
+        </li>
+      </ul>
+      <div class="tab-content" id="gastosTabContent">
+        <div class="tab-pane fade show active" id="resumen" role="tabpanel"></div>
+        <div class="tab-pane fade" id="gastos" role="tabpanel"></div>
+        <div class="tab-pane fade" id="anticipos" role="tabpanel"></div>
+      </div>`;
+
+      document.getElementById("tablaPrueba").appendChild(tabContainer);
+
+      // Configurar DataTables para Gastos y Anticipos
+      setupTablaGastos(gastos);
+      setupTablaAnticipos(anticipos);
+
+      // Configurar resumen financiero
+      setupResumenFinanciero(gastos, anticipos);
+    } catch (error) {
+      console.error("Error cargando módulo:", error);
+      document.getElementById("tablaPrueba").innerHTML = `
+      <tr><td class="text-center py-5" colspan="100%">
+      Error al cargar los datos. Por favor, intenta nuevamente.</td></tr>`;
+    }
+  }
+
+  // Botones específicos para el módulo de gastos
+  function crearBotonesGastos() {
+    const actionButtons = document.getElementById("action-buttons");
+    if (!actionButtons) return;
+    actionButtons.innerHTML = `
+      <button class="btn btn-success btn-sm" onclick="abrirModalAgregarGasto()">
+        <i class="bi bi-plus-circle"></i> Agregar Gasto
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="abrirModalAgregarAnticipo()">
+        <i class="bi bi-cash-coin"></i> Agregar Anticipo
+      </button>
+    `;
+  }
+
+  function setupTablaGastos(data) {
+    // Implementación similar a otras tablas DataTables
+    // Incluir filtros por número de control y categoría
+  }
+
+  function setupTablaAnticipos(data) {
+    // Implementación similar a otras tablas DataTables
+    // Incluir filtros por número de control y medio de entrega
+  }
+
+  function setupResumenFinanciero(gastos, anticipos) {
+    // Calcular y mostrar resumen por número de control
+    // Incluir alertas visuales cuando corresponda
+  }
+
+  async function guardarGasto() {
+    const form = document.getElementById("formAgregarGasto");
+    const datos = obtenerDatosFormulario(form);
+
+    try {
+      await runGoogleFunction("registrarGasto", datos);
+      form.reset();
+      $("#modalAgregarGasto").modal("hide");
+      loadGastosModule();
+    } catch (error) {
+      mostrarError("Error al guardar gasto");
+    }
+  }
+
+  async function guardarAnticipo() {
+    const form = document.getElementById("formAgregarAnticipo");
+    const datos = obtenerDatosFormulario(form);
+
+    try {
+      await runGoogleFunction("registrarAnticipo", datos);
+      form.reset();
+      $("#modalAgregarAnticipo").modal("hide");
+      loadGastosModule();
+    } catch (error) {
+      mostrarError("Error al guardar anticipo");
+    }
+  }
 </script>

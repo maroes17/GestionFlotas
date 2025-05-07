@@ -718,3 +718,328 @@ function verificarEstadosDeTodosLosViajes() {
     }
   }
 }
+
+// --------------------------------------
+// Módulo Gastos y Anticipos
+// --------------------------------------
+
+function generarIdGasto() {
+  const hoja = getSheet("Gastos");
+  const ultimaFila = hoja.getLastRow();
+  return ultimaFila < 2 ? 1 : Number(hoja.getRange(ultimaFila, 1).getValue()) + 1;
+}
+
+function agregarRegistroGasto(registro) {
+  if (!Array.isArray(registro) || registro.length < 10) {
+    throw new Error("Registro de gasto inválido");
+  }
+  
+  const id = generarIdGasto();
+  registro.unshift(id); // Agrega ID al inicio
+  
+  const hoja = getSheet("Gastos");
+  hoja.appendRow(registro);
+  clearCache("data_Gastos");
+  return id;
+}
+
+function obtenerGastosPorControl(numeroControl) {
+  const { datos } = getData("Gastos", false);
+  return datos.filter(row => String(row[1]) === String(numeroControl));
+}
+
+function actualizarRegistroGasto(registroModificado) {
+  return actualizarRegistroEnHoja("Gastos", registroModificado, "data_Gastos");
+}
+
+function borrarRegistroGasto(idGasto) {
+  return borrarRegistroEnHoja("Gastos", idGasto, "data_Gastos");
+}
+
+function generarIdUnico(prefix = "") {
+  const timestamp = new Date().getTime();
+  return `${prefix}${timestamp}`;
+}
+
+function obtenerIndiceColumna(hoja, nombreColumna) {
+  const headers = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  return (
+    headers.findIndex(
+      (h) => h.trim().toLowerCase() === nombreColumna.toLowerCase()
+    ) + 1
+  );
+}
+
+// Esta función ya existe en tu código - solo verifica que coincida
+function obtenerIncidentesPorViaje(idViaje) {
+  try {
+    const sheet = getSheet("Incidentes");
+    const data = sheet.getDataRange().getDisplayValues();
+
+    if (data.length < 2) return [];
+
+    const headers = data[0].map((h) => h.trim());
+    const rows = data.slice(1);
+
+    // Índices basados en tus headers reales
+    const columnas = {
+      id: headers.indexOf("ID Incidente"),
+      fecha: headers.indexOf("Fecha"),
+      idViaje: headers.indexOf("ID Viaje"),
+      patente: headers.indexOf("Patente"),
+      chofer: headers.indexOf("Chofer"),
+      tipo: headers.indexOf("Tipo"),
+      descripcion: headers.indexOf("Descripción"),
+      estado: headers.indexOf("Estado"),
+      reportadoPor: headers.indexOf("Reportado por"),
+    };
+
+    // Verificar que todas las columnas existan
+    if (Object.values(columnas).some((index) => index === -1)) {
+      console.error("Error en índices de columnas:", columnas);
+      return [];
+    }
+
+    return rows
+      .filter(
+        (row) =>
+          row[columnas.idViaje] &&
+          row[columnas.idViaje].toString().trim() === idViaje.toString().trim()
+      )
+      .map((row) => ({
+        id: row[columnas.id] || "",
+        fecha: row[columnas.fecha] || "",
+        idViaje: row[columnas.idViaje] || "",
+        patente: row[columnas.patente] || "",
+        chofer: row[columnas.chofer] || "",
+        tipo: row[columnas.tipo] || "",
+        descripcion: row[columnas.descripcion] || "",
+        estado: row[columnas.estado] || "",
+        reportadoPor: row[columnas.reportadoPor] || "",
+      }));
+  } catch (e) {
+    console.error("Error en obtenerIncidentesPorViaje:", e);
+    return [];
+  }
+}
+
+// Función auxiliar para formato de fecha
+function formatDateForDisplay(dateValue) {
+  if (!dateValue) return "";
+  try {
+    const date = new Date(dateValue);
+    return isNaN(date) ? dateValue : date.toISOString().split("T")[0];
+  } catch {
+    return dateValue;
+  }
+}
+
+function testObtenerIncidentes() {
+  const testId = "V001";
+  console.log("🔍 Testeando con ID:", testId);
+
+  const sheet = getSheet("Incidentes");
+  const data = sheet.getDataRange().getDisplayValues();
+  console.log("📜 Headers reales:", data[0]);
+
+  const resultados = obtenerIncidentesPorViaje(testId);
+  console.log("✅ Resultados del test:", JSON.stringify(resultados, null, 2));
+
+  // Verificar coincidencias exactas
+  const idViajeCol = data[0].indexOf("ID Viaje");
+  if (idViajeCol !== -1) {
+    console.log(
+      "🔎 Coincidencias encontradas en filas:",
+      data
+        .slice(1)
+        .map((row, i) => (row[idViajeCol] === testId ? `Fila ${i + 2}` : null))
+        .filter(Boolean)
+    );
+  }
+
+  return resultados;
+}
+
+function testIncidentes() {
+  const resultado = obtenerIncidentesPorViaje("V001");
+  console.log("✅ Resultado final:", JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+function getSheetHeaders(sheetName) {
+  const sheet = getSheet(sheetName);
+  return sheet.getDataRange().getDisplayValues()[0];
+}
+
+function marcarIncidenteResuelto(datos) {
+  const hoja = getSheet("Incidentes");
+  const data = hoja.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(datos.idIncidente)) {
+      hoja.getRange(i + 1, 8).setValue("Resuelto");
+      hoja.getRange(i + 1, 10).setValue(datos.fechaSolucion);
+      hoja.getRange(i + 1, 11).setValue(datos.observacion);
+
+      // ✅ Verificación correcta del estado del viaje
+      actualizarEstadoViajeSiNecesario(data[i][2]);
+      break;
+    }
+  }
+}
+
+// Función para actualizar estado del viaje si todos los incidentes están resueltos
+function actualizarEstadoViajeSiNecesario(idViaje) {
+  const hojaIncidentes = getSheet("Incidentes");
+  const hojaViajes = getSheet("Viajes");
+
+  // Obtener todos los incidentes del viaje
+  const incidentes = obtenerIncidentesPorViaje(idViaje);
+  const todosResueltos =
+    incidentes.length > 0 &&
+    incidentes.every((inc) => (inc.estado || '').toString().trim().toLowerCase() === "resuelto");
+
+  if (!todosResueltos) return false;
+
+  // Actualizar estado en hoja Viajes
+  const datosViajes = hojaViajes.getDataRange().getValues();
+  const headers = datosViajes[0];
+  const idxId = headers.indexOf("ID Viaje");
+  const idxEstado = headers.indexOf("Estado");
+
+  for (let i = 1; i < datosViajes.length; i++) {
+    if (String(datosViajes[i][idxId]) === String(idViaje)) {
+      hojaViajes.getRange(i + 1, idxEstado + 1).setValue("En ruta");
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Obtiene el estado actual de un viaje específico
+ * @param {string} idViaje - ID del viaje a consultar
+ * @returns {string} Estado del viaje (ej: "Mantención", "En ruta")
+ */
+function obtenerEstadoViaje(idViaje) {
+  try {
+    const sheet = getSheet("Viajes");
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map((h) => h.trim()); // Limpia espacios en los headers
+
+    // Usa los nombres exactos de tus columnas
+    const idCol = headers.indexOf("ID Viaje"); // Ajustado a tu nombre real
+    const estadoCol = headers.indexOf("Estado"); // Asegúrate que coincida exactamente
+
+    if (idCol === -1) throw new Error("Columna 'ID Viaje' no encontrada");
+    if (estadoCol === -1) throw new Error("Columna 'Estado' no encontrada");
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === idViaje) {
+        return data[i][estadoCol].toString();
+      }
+    }
+
+    throw new Error(`Viaje con ID ${idViaje} no encontrado`);
+  } catch (e) {
+    console.error("Error en obtenerEstadoViaje:", e);
+    throw e;
+  }
+}
+
+function verificarEstadosDeTodosLosViajes() {
+  var hojaViajes = getSheet("Viajes");
+  var hojaIncidentes = getSheet("Incidentes");
+
+  var datosViajes = hojaViajes.getDataRange().getValues();
+  var datosIncidentes = hojaIncidentes.getDataRange().getValues();
+
+  var headerViajes = datosViajes[0];
+  var headerIncidentes = datosIncidentes[0];
+
+  var idxIdViaje = headerViajes.indexOf("ID Viaje");
+  var idxEstadoViaje = headerViajes.indexOf("Estado");
+  var idxIdViajeInc = headerIncidentes.indexOf("ID Viaje");
+  var idxEstadoInc = headerIncidentes.indexOf("Estado");
+
+  for (var i = 1; i < datosViajes.length; i++) {
+    var idViaje = datosViajes[i][idxIdViaje];
+    var incidentesAbiertos = datosIncidentes.slice(1).filter(function(inc) {
+      // Compara insensible a mayúsculas/minúsculas y elimina espacios
+      return inc[idxIdViajeInc] === idViaje &&
+        (inc[idxEstadoInc] || "").toString().trim().toLowerCase() !== "resuelto";
+    });
+    var nuevoEstado = "en ruta";
+    if (incidentesAbiertos.length > 0) {
+      nuevoEstado = "mantención";
+    } else if (datosViajes[i][idxEstadoViaje] === "realizado") {
+      nuevoEstado = "realizado";
+    }
+    if (datosViajes[i][idxEstadoViaje] !== nuevoEstado) {
+      hojaViajes.getRange(i + 1, idxEstadoViaje + 1).setValue(nuevoEstado);
+    }
+  }
+}
+
+// --------------------------------------
+// Módulo Gastos y Anticipos
+// --------------------------------------
+
+function generarIdAnticipo() {
+  const hoja = getSheet("Anticipos");
+  const ultimaFila = hoja.getLastRow();
+  return ultimaFila < 2 ? 1 : Number(hoja.getRange(ultimaFila, 1).getValue()) + 1;
+}
+
+function agregarRegistroAnticipo(registro) {
+  if (!Array.isArray(registro) || registro.length < 8) {
+    throw new Error("Registro de anticipo inválido");
+  }
+  
+  const id = generarIdAnticipo();
+  registro.unshift(id);
+  
+  const hoja = getSheet("Anticipos");
+  hoja.appendRow(registro);
+  clearCache("data_Anticipos");
+  return id;
+}
+
+function obtenerAnticiposPorControl(numeroControl) {
+  const { datos } = getData("Anticipos", false);
+  return datos.filter(row => String(row[1]) === String(numeroControl));
+}
+
+function resumenPorControl(numeroControl) {
+  const gastos = obtenerGastosPorControl(numeroControl);
+  const anticipos = obtenerAnticiposPorControl(numeroControl);
+  
+  const totalGastosCLP = gastos
+    .filter(g => g[8] === "CLP")
+    .reduce((sum, g) => sum + Number(g[7]), 0);
+  
+  const totalGastosARS = gastos
+    .filter(g => g[8] === "ARS")
+    .reduce((sum, g) => sum + Number(g[7]), 0);
+  
+  const totalAnticiposCLP = anticipos
+    .filter(a => a[7] === "CLP")
+    .reduce((sum, a) => sum + Number(a[6]), 0);
+  
+  const totalAnticiposARS = anticipos
+    .filter(a => a[7] === "ARS")
+    .reduce((sum, a) => sum + Number(a[6]), 0);
+  
+  return {
+    numeroControl,
+    totalGastosCLP,
+    totalGastosARS,
+    totalAnticiposCLP,
+    totalAnticiposARS,
+    diferenciaCLP: totalAnticiposCLP - totalGastosCLP,
+    diferenciaARS: totalAnticiposARS - totalGastosARS,
+    alerta: (totalGastosCLP > totalAnticiposCLP * 1.2) || 
+            (totalGastosARS > totalAnticiposARS * 1.2)
+  };
+}

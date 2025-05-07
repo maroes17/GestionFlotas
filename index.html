@@ -52,6 +52,12 @@
               <span>Viajes</span>
             </button>
           </li>
+          <li class="sidebar-item">
+            <button id="gastosBtn" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span>Gastos y Anticipos</span>
+            </button>
+          </li>
         </ul>
 
         <div class="sidebar-footer">
@@ -2194,6 +2200,164 @@ aria-hidden="true"
 </div>
 
 
-    <?!= obtenerDatosHtml('js'); ?>
+    <!-- Modal Gastos -->
+<div class="modal fade" id="modalAgregarGasto" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Registrar Gasto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAgregarGasto">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">N° Control</label>
+              <input type="text" class="form-control" name="numeroControl" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">ID Viaje</label>
+              <input type="text" class="form-control" name="idViaje">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Fecha</label>
+              <input type="date" class="form-control" name="fecha" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Chofer</label>
+              <select class="form-select" name="chofer" required>
+                <!-- JS cargará dinámicamente -->
+              </select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Categoría</label>
+              <select class="form-select" name="categoria" required>
+                <option value="Combustible">Combustible</option>
+                <option value="Peaje">Peaje</option>
+                <option value="Viático">Viático</option>
+                <option value="Teléfono">Teléfono</option>
+                <option value="Panne">Panne</option>
+                <option value="Migraciones">Migraciones</option>
+                <option value="Agente Aduana">Agente Aduana</option>
+                <option value="Sanidad">Sanidad</option>
+                <option value="Estacionamiento">Estacionamiento</option>
+                <option value="Orden">Orden</option>
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Monto</label>
+              <input type="number" step="0.01" class="form-control" name="monto" required>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Moneda</label>
+              <select class="form-select" name="moneda" required>
+                <option value="CLP">CLP</option>
+                <option value="ARS">ARS</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tipo Documento</label>
+              <select class="form-select" name="tipoDocumento" required>
+                <option value="Boleta">Boleta</option>
+                <option value="Factura">Factura</option>
+                <option value="Documento a mano">Documento a mano</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descripción</label>
+            <textarea class="form-control" name="descripcion" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observaciones</label>
+            <textarea class="form-control" name="observaciones" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarGasto()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Anticipos -->
+<div class="modal fade" id="modalAgregarAnticipo" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Registrar Anticipo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAgregarAnticipo">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">N° Control</label>
+              <input type="text" class="form-control" name="numeroControl" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">ID Viaje</label>
+              <input type="text" class="form-control" name="idViaje">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Fecha Entrega</label>
+              <input type="date" class="form-control" name="fechaEntrega" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Chofer</label>
+              <select class="form-select" name="chofer" required>
+                <!-- JS cargará dinámicamente -->
+              </select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Monto</label>
+              <input type="number" step="0.01" class="form-control" name="monto" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Moneda</label>
+              <select class="form-select" name="moneda" required>
+                <option value="CLP">CLP</option>
+                <option value="ARS">ARS</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Medio Entrega</label>
+              <select class="form-select" name="medioEntrega" required>
+                <option value="Western Union">Western Union</option>
+                <option value="Global66">Global66</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observaciones</label>
+            <textarea class="form-control" name="observaciones" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarAnticipo()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?!= obtenerDatosHtml('js'); ?>
   </body>
 </html>
